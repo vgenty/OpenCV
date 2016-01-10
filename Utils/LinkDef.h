@@ -10,6 +10,7 @@
 #pragma link off all functions;
 
 #pragma link C++ namespace imutil+;
+
 #pragma link C++ class imutil::Coordinate_t+;
 #pragma link C++ class imutil::Contour_t+;
 #pragma link C++ class imutil::ContourArray_t+;

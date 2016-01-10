@@ -4,6 +4,7 @@
 #include "HitImageMaker.h"
 #include "Utils/NDArrayConverter.h"
 #include "DataFormat/hit.h"
+
 namespace larlite {
 
   HitImageMaker::HitImageMaker()
@@ -62,13 +63,13 @@ namespace larlite {
 		    y_max_v[plane] - y_min_v[plane] + 1,
 		    CV_8UC1, cvScalar(0.));
 
-      ::cv::Mat canny;
-      canny.create(mat.size(),mat.type());
+      // ::cv::Mat canny;
+      // canny.create(mat.size(),mat.type());
       
       _mat_v.emplace_back(mat);
-      _canny_v.emplace_back(canny);
+      // _canny_v.emplace_back(canny);
     }
-    _contour_v.resize(x_min_v.size());
+    // _contour_v.resize(x_min_v.size());
 
     for(auto const& h : *ev_hit) {
 
@@ -88,45 +89,47 @@ namespace larlite {
 	
     }
 
-    for(size_t plane=0; plane<_mat_v.size(); ++plane) {
+    //User should just derive this and do what needs to be done @ this point
+    
+    // for(size_t plane=0; plane<_mat_v.size(); ++plane) {
 
-      //vic don't blur it what does it look like, lots of contours....
-      ::cv::blur( _mat_v[plane],
-      		  _mat_v[plane],
-      		  ::cv::Size(3,3) );
+    //   //vic - don't blur it what does it look like, lots of contours....
+    //   ::cv::blur( _mat_v[plane],
+    //   		  _mat_v[plane],
+    //   		  ::cv::Size(3,3) );
       
       
-      /// Canny detector
-      //Canny( detected_edges, detected_edges, lowThreshold, lowThreshold*ratio, kernel_size );
+    //   /// Canny detector
+    //   //Canny( detected_edges, detected_edges, lowThreshold, lowThreshold*ratio, kernel_size );
       
-      ::cv::Canny(_mat_v[plane],_canny_v[plane],10,100,3);
+    //   ::cv::Canny(_mat_v[plane],_canny_v[plane],10,100,3);
 
-      // ==> page 100 of ``Computer Vision with OpenCV"
-      // In OpenCV, each individual contour is stored as a vector of points,
-      // and all the contours are stored as a vector of contours (i.e. a vector of vectors of points).
-      std::vector<std::vector<cv::Point> > cv_contour_v;
-      std::vector<cv::Vec4i> cv_hierarchy_v;
-      ::cv::findContours(_canny_v[plane],cv_contour_v,cv_hierarchy_v,
-			 CV_RETR_EXTERNAL,
-			 CV_CHAIN_APPROX_SIMPLE);
+    //   // ==> page 100 of ``Computer Vision with OpenCV"
+    //   // In OpenCV, each individual contour is stored as a vector of points,
+    //   // and all the contours are stored as a vector of contours (i.e. a vector of vectors of points).
+    //   std::vector<std::vector<cv::Point> > cv_contour_v;
+    //   std::vector<cv::Vec4i> cv_hierarchy_v;
+    //   ::cv::findContours(_canny_v[plane],cv_contour_v,cv_hierarchy_v,
+    // 			 CV_RETR_EXTERNAL,
+    // 			 CV_CHAIN_APPROX_SIMPLE);
 
-      std::cout<<"Found "<<cv_contour_v.size()<<" contours..."<<std::endl;
+    //   std::cout<< "Found " << cv_contour_v.size()<<" contours..."<<std::endl;
 
-      auto& plane_contour_v = _contour_v[plane];
-      plane_contour_v.resize( cv_contour_v.size() );
+    //   auto& plane_contour_v = _contour_v[plane];
+    //   plane_contour_v.resize( cv_contour_v.size() );
 
-      for(size_t c_index=0; c_index<cv_contour_v.size(); ++c_index) {
+    //   for(size_t c_index=0; c_index<cv_contour_v.size(); ++c_index) {
 
-	auto& cv_contour  = cv_contour_v[c_index];
-	auto& out_contour = plane_contour_v[c_index];
+    // 	auto& cv_contour  = cv_contour_v[c_index];
+    // 	auto& out_contour = plane_contour_v[c_index];
 
-	out_contour.resize(cv_contour.size());
-	for(size_t p_index=0; p_index<cv_contour.size(); ++p_index)
-	  out_contour.set(p_index, cv_contour[p_index].x, cv_contour[p_index].y);
+    // 	out_contour.resize(cv_contour.size());
+    // 	for(size_t p_index=0; p_index<cv_contour.size(); ++p_index)
+    // 	  out_contour.set(p_index, cv_contour[p_index].x, cv_contour[p_index].y);
 	
-      }
-    }
-
+    //   }
+    // }
+   
     //::cv::namedWindow( "Display window", ::cv::WINDOW_AUTOSIZE );// Create a window for display.
     //::cv::imshow( "Display window", _mat_v.back() );                   // Show our image inside it.
     
