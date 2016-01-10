@@ -63,12 +63,16 @@ namespace larlite {
     PyObject* GetContour(const size_t plane, const size_t contour_index);
     size_t NumContours(const size_t plane) const;
 
+    ::cv::Mat* GetMat(const size_t plane);
+    
   protected:
     void init();
     std::vector<::cv::Mat> _mat_v;
     std::vector<::cv::Mat> _canny_v;
     
     std::vector< std::vector<larcv::Point2DArray> >_contour_v;
+
+    
   };
 }
 #endif

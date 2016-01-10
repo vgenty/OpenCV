@@ -33,14 +33,19 @@ print
 # Let's run it.
 while my_proc.process_event():
 
+    print "Image (some blur)"
     img = my_unit.GetImage(2)
+
     imgplot = plt.imshow(img)
+    print imgplot
     plt.show()
 
+    print "Canny"
     canny = my_unit.GetCanny(2)
     cannyplot = plt.imshow(canny)
     plt.show()
-    
+
+    print "Contours"
     num_contours = my_unit.NumContours(2)
     print num_contours,'contours found'
     contourplot = plt.imshow(canny)

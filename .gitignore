@@ -17,4 +17,4 @@
 *~
 *.pcm
 *.swp
-
+.ipynb_checkpoints

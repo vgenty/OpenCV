@@ -34,7 +34,6 @@ namespace larlite {
       if(h.Integral()<5.) continue;
       size_t plane = h.WireID().Plane;
       if(plane >= x_min_v.size()) {
-
 	x_min_v.resize(plane+1,4000);
 	x_max_v.resize(plane+1,0);
 	y_min_v.resize(plane+1,9600);
@@ -91,18 +90,22 @@ namespace larlite {
 
     for(size_t plane=0; plane<_mat_v.size(); ++plane) {
 
+      //vic don't blur it what does it look like, lots of contours....
       ::cv::blur( _mat_v[plane],
-		  _mat_v[plane],
-		  ::cv::Size(3,3) );
-
+      		  _mat_v[plane],
+      		  ::cv::Size(3,3) );
+      
+      
       /// Canny detector
       //Canny( detected_edges, detected_edges, lowThreshold, lowThreshold*ratio, kernel_size );
       
       ::cv::Canny(_mat_v[plane],_canny_v[plane],10,100,3);
 
+      // ==> page 100 of ``Computer Vision with OpenCV"
+      // In OpenCV, each individual contour is stored as a vector of points,
+      // and all the contours are stored as a vector of contours (i.e. a vector of vectors of points).
       std::vector<std::vector<cv::Point> > cv_contour_v;
       std::vector<cv::Vec4i> cv_hierarchy_v;
-      //::cv::findContours(_canny_v[plane],cv_contour_v,cv_hierarchy_v,CV_RETR_EXTERNAL,CV_CHAIN_APPROX_SIMPLE);
       ::cv::findContours(_canny_v[plane],cv_contour_v,cv_hierarchy_v,
 			 CV_RETR_EXTERNAL,
 			 CV_CHAIN_APPROX_SIMPLE);
@@ -135,6 +138,16 @@ namespace larlite {
     return true;
   }
 
+  ::cv::Mat* HitImageMaker::GetMat(const size_t plane)
+  {
+    if(plane >= _mat_v.size()) {
+      print(msg::kERROR,__FUNCTION__,"Invalid plane ID requested...");
+      throw std::exception();
+    }
+    
+    return (::cv::Mat*)&_mat_v[plane];
+  }
+  
   PyObject* HitImageMaker::GetImage(const size_t plane)
   {
     if(plane >= _mat_v.size()) {
