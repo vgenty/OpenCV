@@ -183,7 +183,7 @@ namespace larlite {
     }
     return _contour_v[plane].size();
   }
-
+  
   PyObject* HitImageMaker::GetContour(const size_t plane, const size_t contour_index)
   {
     if(plane >= _mat_v.size()) {
