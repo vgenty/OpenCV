@@ -1,0 +1,87 @@
+#ifndef ALGOIMAGEMAKER_CXX
+#define ALGOIMAGEMAKER_CXX
+
+#include "AlgoImageMaker.h"
+
+namespace larlite {
+
+  void AlgoImageMaker::CreateImage(const std::vector<larlite::hit>* ev_hit) {
+    
+    clean();
+    
+    for(auto const& h : *ev_hit) {
+      
+      if(h.Integral()<5.) continue;
+
+      size_t plane = h.WireID().Plane;
+      if(plane >= _x_min_v.size()) {
+	_x_min_v.resize(plane+1,4000);
+	_x_max_v.resize(plane+1,0);
+	_y_min_v.resize(plane+1,9600);
+	_y_max_v.resize(plane+1,0);
+	_q_max_v.resize(plane+1,0);
+      }
+
+      int wire = h.WireID().Wire;
+      int time = (int)(h.PeakTime());
+      float  q = h.Integral();
+
+      if( _x_min_v[plane] > wire ) _x_min_v[plane] = wire;
+      if( _x_max_v[plane] < wire ) _x_max_v[plane] = wire;
+      if( _y_min_v[plane] > time ) _y_min_v[plane] = time;
+      if( _y_max_v[plane] < time ) _y_max_v[plane] = time;
+      if( _q_max_v[plane] < q    ) _q_max_v[plane] = q;
+    }
+    
+    for(size_t plane=0; plane<_x_min_v.size(); ++plane) {
+
+      ::cv::Mat mat(_x_max_v[plane] - _x_min_v[plane] + 1,
+		    _y_max_v[plane] - _y_min_v[plane] + 1,
+		    CV_8UC1, cvScalar(0.));
+      
+      // ::cv::Mat canny;
+      // canny.create(mat.size(),mat.type());
+      
+      _mat_v.emplace_back(mat);
+
+      // _canny_v.emplace_back(canny);
+    }
+
+    // _contour_v.resize(x_min_v.size());
+
+    for(auto const& h : *ev_hit) {
+
+      if(h.Integral()<5.) continue;
+
+      int wire     = h.WireID().Wire;
+      int time     = (int)(h.PeakTime());
+      size_t plane = h.WireID().Plane;
+      int charge   = ((256. * h.Integral() / _q_max_v[plane]));
+
+      wire -= _x_min_v[plane];
+      time -= _y_min_v[plane];
+
+      auto& mat = _mat_v[plane];
+
+      charge += mat.at<unsigned char>(wire,time);
+
+      if(charge>256) charge = 256;
+      mat.at<unsigned char>(wire,time) = (unsigned char)(charge);
+	
+    }
+    
+  }
+
+  
+  void AlgoImageMaker::clean() {
+
+    _x_min_v.clear();
+    _x_max_v.clear();
+    _y_min_v.clear();
+    _y_max_v.clear();
+    _q_max_v.clear();
+    
+    _mat_v.clear();
+  }  
+}
+#endif

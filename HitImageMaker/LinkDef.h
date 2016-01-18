@@ -9,8 +9,17 @@
 #pragma link off all classes;
 #pragma link off all functions;
 
-#pragma link C++ class larlite::HitImageMaker+;
+#pragma link C++ class larlite::HitImageManager+;
+
+#pragma link C++ class larlite::BaseAlgoImage+;
+#pragma link C++ class larlite::AlgoImageMaker+;
+
+#pragma link C++ class larlite::BaseAlgoCluster+;
+
 //ADD_NEW_CLASS ... do not change this line
 #endif
+
+
+
 
 

@@ -30,7 +30,6 @@ namespace larcv {
     { return Point2D(_data[i], _data[_data.size()/2+i]); }
 
     std::vector<double>& raw_data() { return _data; }
-    //const std::vector<double>& raw_data() const { return _data; }
     
   private:
     std::vector<double> _data;

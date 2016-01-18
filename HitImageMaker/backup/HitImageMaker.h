@@ -28,10 +28,7 @@ typedef _object PyObject;
 
 namespace larlite {
 
-  /**
-     \class HitImageMaker
-     User custom analysis class made by SHELL_USER_NAME
-   */
+
   class HitImageMaker : public ana_base{
   
   public:
@@ -42,23 +39,13 @@ namespace larlite {
     /// Default destructor
     virtual ~HitImageMaker(){}
 
-
-    /** IMPLEMENT in HitImageMaker.cc!
-        Initialization method to be called before the analysis event loop.
-    */ 
     virtual bool initialize();
 
-    /** IMPLEMENT in HitImageMaker.cc! 
-        Analyze a data event-by-event  
-    */
     virtual bool analyze(storage_manager* storage);
 
-    /** IMPLEMENT in HitImageMaker.cc! 
-        Finalize method to be called after all events processed.
-    */
     virtual bool finalize();
 
-    PyObject* GetImage(const size_t plane);
+
     PyObject* GetCanny(const size_t plane);
     PyObject* GetContour(const size_t plane, const size_t contour_index);
     size_t NumContours(const size_t plane) const;
