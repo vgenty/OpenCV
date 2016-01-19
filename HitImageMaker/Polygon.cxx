@@ -188,8 +188,8 @@ std::pair<float, float> Polygon::Project(const std::pair<float, float> &p,
 
 //---------------------------------------------------------------
 bool Polygon::Overlap(float slope,
-                        const Polygon &poly2,
-                        const std::pair<float, float> &origin) const
+		      const Polygon &poly2,
+		      const std::pair<float, float> &origin) const
 {
   //translate and rotate both polygons
   float theta = tan(slope);
@@ -219,18 +219,24 @@ bool Polygon::PolyOverlap(const Polygon &poly2) const
     slope = FindSlope( this->Point(i) , this->Point(i + 1) );
     //if there is even one no-overlap
     //need to exit and return no overlap!
+
     if (! (this->Overlap( slope, poly2, this->Point(i) )) )
       return false;
+
+
   }//loop over first polygon vertices
 
   //do the exact same thing but reversing polygon role
   for (unsigned int i = 0; i < poly2.Size(); i++) { //loop over first polygon
     float slope;
     slope = FindSlope( poly2.Point(i) , poly2.Point(i + 1) );
+
     if (!(poly2.Overlap( slope, *this, poly2.Point(i) )) )
       return false;
+
   }//loop over second polygon vertices
-  return true;
+  
+  return false;
 }
 
 bool Polygon::Contained(const Polygon &poly2) const

@@ -16,11 +16,17 @@ public:
   ProtoCluster(const std::vector< std::pair<float,float> >& points)
     : _polygon(points)
   { _hlines.reserve(50); }
+
+  // ProtoCluster(ProtoCluster& p)
+  // {
+  //   this->_polygon = p._polygon;
+  //   //this._hlines  = p._hlines;
+  // }
   
   /// Default destructor
   virtual ~ProtoCluster(){}
 
-  const Polygon* polygon() { return &_polygon; }
+  Polygon* polygon() { return &_polygon; }
 
   void AddLine(float* line) { _hlines.push_back(line); }
 

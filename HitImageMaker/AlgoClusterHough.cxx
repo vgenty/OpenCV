@@ -28,6 +28,7 @@ namespace larlite {
     _contour_v2.clear();
     _houghs.clear();
     _hulls.clear();
+    _hulls2.clear();
   }
   
   event_cluster AlgoClusterHough::DecideClusters(event_hit* hits,
@@ -74,7 +75,7 @@ namespace larlite {
 
       //Gaussian Blur
       std::cout << "\t(" << __FUNCTION__ << ")==> Bluring\n";
-      ::cv::GaussianBlur(_dilated,_blur,::cv::Size(5,5),50);
+      ::cv::GaussianBlur(_dilated,_blur,::cv::Size(5,5),75);
       
       //Threshold
       //double threshold(InputArray src, OutputArray dst, double thresh, double maxval, int 
@@ -147,9 +148,8 @@ namespace larlite {
 					
 	}
 	
-
 	p_clusters_v.emplace_back(_hulls[i]);
-	
+
       }
 
 
@@ -157,71 +157,146 @@ namespace larlite {
 
       //for now just combine overlapping clusters (polygons)
       std::vector<ProtoCluster> combined;
-      std::map<size_t,bool> used;
-      std::map<size_t,bool> seen;
-      used.reserve(p_clusters_v.size());
-      seen.reserve(p_clusters_v.size());
+      bool more_overlaps = true;
+      int n = 0;
+      int c = 0;
 
-      for(unsigned i = 0; i < p_clusters_v.size(); ++i)
-	{ used[i] = false; seen[i] = false; }
-      
-      //do it in least efficient way possible
-      bool overlaps = True;
-      int a = 0;
-      int b = 1;
-      
-      while(!overlaps) {
-
-	if(seen.at(a)) { ++a; continue; }
-	if(seen.at(b)) { ++b; continue; }	
-
+      while(more_overlaps) {
 	
-	
-	auto& p_cluster1 = p_clusters_v[a];
-	auto& p_cluster2 = p_clusters_v[b];
+	n = 0;
+	std::map<size_t,bool> used;
 
-	//polygons overlap, get their points, convexHull on them, create new ProtoCluster
-	if ( p_clusters1.polygon()->PolyOverlap(p_clusters2.polygon()) )  {
-
-	  auto n_points = p_cluster1.polygon()->Size() + p_cluster2.polygon()->Size();
-
-	  std::vector<cv::Point> combine; combine.reserve ( n_points );
-	  std::vector<cv::Point> hul;     hul.reserve     ( n_points );
-
-	  std::vector<std::pair<float,float> > out;
-
-	  for(unsigned p = 0; p < p_cluster1.polygon()->Size(); ++p) {
-	    auto point = p_cluster1.polygon()->Point(p);
-	    combine.emplace_back(point.first,point.second);
-	  }
-
-	  for(unsigned p = 0; p < p_cluster1.polygon()->Size(); ++p) {
-	    auto point = p_cluster2.polygon()->Point(p);
-	    combine.emplace_back(point.first,point.second);
-	  }
-
-	  convexHull( ::cv::Mat(combine), hul, false );
-
-	  out.resize(hul.size());
-	  
-	  for(unsigned k = 0; k < hul.size(); ++k) {
-	    
-	    float x = (float) hul[k].x;
-	    float y = (float) hul[k].y;
-	    
-	    out[k] = std::make_pair(x,y);
-	    
-	  }
-
-	  combined.emplace_back(out);
-	  used[a] = true;
-	  used[b] = true;
+	if ( c  >  0 ) {
+	  p_clusters_v = combined;
+	  combined.clear();
 	}
 
-	seen[a] = true;
-	seen[b] = true;
 	
+	for(unsigned i = 0; i < p_clusters_v.size(); ++i) {
+	  used[i] = false;
+	  
+	  //is this necessary?
+	  p_clusters_v[i].polygon()->UntanglePolygon();
+	  
+	}
+      
+	std::vector<size_t> overlaps; overlaps.reserve(p_clusters_v.size());
+
+	for(unsigned c1 = 0; c1 < p_clusters_v.size(); ++c1) {
+
+	  // std::cout << "{ ";
+
+	  // for(unsigned i = 0; i < p_clusters_v.size(); ++i)
+	  //   std::cout << "(" << i << "," << used[i] << "), ";
+
+	  // std::cout << "}\n";
+	
+	  auto& p_cluster1 = p_clusters_v[c1];
+	
+	  overlaps.clear();
+	
+	  if ( used[c1] ) continue;
+		  
+	  for(unsigned c2 = 0; c2 < p_clusters_v.size(); ++c2) {
+	  
+	    if ( c1 == c2 )  continue;
+	    if ( used[c2] )  continue;
+
+	    auto& p_cluster2 = p_clusters_v[c2];
+	  
+	    //polygons overlap, get their points, convexHull on them, create new ProtoCluster
+	    if ( p_cluster1.polygon()->PolyOverlapSegments( *( p_cluster2.polygon() ) ) ) { 
+	      overlaps.push_back(c2);
+	      n++;
+	    }
+	    
+	  }
+
+
+	  if(overlaps.size() == 0)
+	    continue;
+	
+	  overlaps.push_back(c1);
+
+	  int n_points = 0;
+	  for(const auto& idx : overlaps)
+	    n_points += p_clusters_v[idx].polygon()->Size();
+
+	  //
+	  std::vector<cv::Point> combine; combine.reserve ( n_points );
+	  std::vector<cv::Point> hul;     hul.reserve     ( n_points );
+	
+	  std::vector<std::pair<float,float> > out;
+
+	  for(const auto& idx : overlaps) {
+	    for(unsigned p = 0; p < p_clusters_v[idx].polygon()->Size(); ++p) {
+	      auto point = p_clusters_v[idx].polygon()->Point(p);
+	      combine.emplace_back(point.first,point.second);
+	    }
+	  }
+	
+	  convexHull( ::cv::Mat(combine), hul, false );
+	  out.resize( hul.size() );
+	
+	  for(unsigned k = 0; k < hul.size(); ++k) {
+	  
+	    float x = (float) hul[k].x;
+	    float y = (float) hul[k].y;
+	  
+	    out[k] = std::make_pair(x,y);
+	  
+	  }
+	
+	  combined.emplace_back(out);
+
+	  for(const auto& idx : overlaps)
+	    used[idx] = true;
+
+	} // end C1 loop
+      
+	for(const auto& u : used) {
+	  if ( u.second ) continue;
+
+	  std::vector<std::pair<float,float> > out ( p_clusters_v[u.first].polygon()->Size() );
+
+	  //loop over points
+	  for(unsigned k = 0; k < p_clusters_v[u.first].polygon()->Size(); ++k) 
+
+	    out[k] = p_clusters_v[u.first].polygon()->Point(k);
+	
+	  combined.emplace_back(out);
+	}
+
+	if( n == 0 )
+	  break;
+	
+	c++;
       }
+
+      //that was terrible!
+      
+      std::cout << "\t==> Combined size...: " << combined.size() << "\n";
+
+      //print out the hulls
+      for(unsigned k = 0; k < combined.size(); ++k) {
+	
+	_hulls2.resize(combined.size());
+	
+	for(unsigned p = 0; p < combined[k].polygon()->Size(); ++p)  {
+
+	  _hulls2[k].emplace_back(combined[k].polygon()->Point(p));
+
+	}
+      }
+	
+      //Ok now we can make "clusters"
+
+      
+      
+	
+          
+    
+  
       // Protoclusters are just convex hull objects in Polygon2D
       // They hold a pointer list of hough segments that begin, and pass through them
       // std::cout<< "\t(" << __FUNCTION__ << ")==> Assigning hough segments to protoclusters\n";
@@ -240,7 +315,7 @@ namespace larlite {
       // 	//Determine most probable direction of proto cluster
       // 	//TODO
       // }
-
+      
       
       //The ghetto way to see contours...
       _contour_v2.resize( cv_contour_v.size() );

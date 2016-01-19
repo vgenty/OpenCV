@@ -78,7 +78,11 @@ class Polygon{
   friend bool operator!=(const Polygon& lhs, const Polygon& rhs);
   friend std::ostream &operator<<(std::ostream &out, Polygon poly);     //output
 
-
+  
+  /// utility function used in polygon overlap determination
+  bool PolyOverlapSegments(const Polygon &poly2) const;
+  
+  
 private:
 
   /// vector listing the polygon edges
@@ -87,8 +91,7 @@ private:
   /// utility function used by PolyOverlap to determine overlap
   bool Overlap(float slope, const Polygon &poly2, const std::pair<float,float> &origin) const;
 
-  /// utility function used in polygon overlap determination
-  bool PolyOverlapSegments(const Polygon &poly2) const;
+
 
 };
 
