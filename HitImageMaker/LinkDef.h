@@ -16,8 +16,10 @@
 
 #pragma link C++ class larlite::BaseAlgoCluster+;
 
+#pragma link C++ class ProtoCluster+;
 //ADD_NEW_CLASS ... do not change this line
 #endif
+
 
 
 

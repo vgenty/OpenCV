@@ -6,6 +6,14 @@
 
 #include "BaseAlgoImage.h"
 
+struct _object;
+typedef _object PyObject;
+
+#ifndef __CINT__
+#include "Python.h"
+#include "numpy/arrayobject.h"
+#endif
+
 namespace larlite {
 
   class AlgoImageMaker : public BaseAlgoImage {
@@ -18,10 +26,13 @@ namespace larlite {
     /// Default destructor
     virtual ~AlgoImageMaker(){}
 
-    void CreateImage(const std::vector<larlite::hit>* ev_hit);
+    void CreateImage(const event_hit* ev_hit);
     const ::cv::Mat* GetImage(const size_t plane) { return &_mat_v.at(plane); }    
+    
+    PyObject* GetPyImage(const size_t plane);
 
-  
+
+    
   private:
 
     void clean();
@@ -33,8 +44,6 @@ namespace larlite {
     std::vector<int>   _y_min_v;
     std::vector<int>   _y_max_v;
     std::vector<float> _q_max_v;
-
-    std::vector<::cv::Mat> _mat_v;
   
   };
 }

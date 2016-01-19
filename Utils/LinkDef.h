@@ -15,7 +15,7 @@
 #pragma link C++ class imutil::Contour_t+;
 #pragma link C++ class imutil::ContourArray_t+;
 #pragma link C++ class imutil::ContourTreeMaker+;
-#pragma link C++ class Trial+;
+
 //ADD_NEW_CLASS ... do not change this line
 #endif
 

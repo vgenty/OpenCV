@@ -17,7 +17,9 @@
 
 #include "Analysis/ana_base.h"
 #include "opencv2/core/mat.hpp"
+
 #include "Utils/DataTypes.h"
+
 struct _object;
 typedef _object PyObject;
 

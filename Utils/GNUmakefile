@@ -25,6 +25,7 @@ LDFLAGS += -L$(shell python-config --prefix)/lib/
 LDFLAGS += $(shell python-config --ldflags)
 LDFLAGS += -L/usr/local/lib/ -lopencv_core -lopencv_highgui -lopencv_imgcodecs
 
+
 # call kernel specific compiler setup
 include $(LARLITE_BASEDIR)/Makefile/Makefile.${OSNAME}
 

@@ -17,17 +17,20 @@ namespace larlite {
     //Manage takes the hits
     auto const ev_hit = storage->get_data<event_hit>("gaushit");  
     
-    //BaseAlgoImage will draw the pictures for us ( 3 planes );
-    //    for( unsigned i = 0; i < 3; ++i ) {
-
-    //}
-
+    
     //just do one plane for now
     _algo_image->CreateImage(ev_hit);
-    auto p = _algo_image->GetImage(2); // get the pointer to plane 2 image
+
+    //BaseAlgoImage will draw the pictures for us ( 3 planes );
+    //    for( unsigned i = 0; i < 3; ++i ) {
+    //auto p = _algo_image->GetImage(2); // get the pointer to plane 2 image
+    //}
     
-    //for each plane, run the clustering algo
-    //auto clusters = _algo_cluster->DecideClusters(ev_hit,p);
+    
+    //run the clustering algo (for now give it all the hits and give it all the images
+    //later we can break this up
+    auto clusters = _algo_cluster->DecideClusters(ev_hit,
+						  _algo_image->_mat_v);
     
     return true;
   }

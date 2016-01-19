@@ -2,10 +2,11 @@
 #define ALGOIMAGEMAKER_CXX
 
 #include "AlgoImageMaker.h"
+#include "Utils/NDArrayConverter.h"
 
 namespace larlite {
 
-  void AlgoImageMaker::CreateImage(const std::vector<larlite::hit>* ev_hit) {
+  void AlgoImageMaker::CreateImage(const event_hit* ev_hit) {
     
     clean();
     
@@ -71,7 +72,6 @@ namespace larlite {
     }
     
   }
-
   
   void AlgoImageMaker::clean() {
 
@@ -82,6 +82,21 @@ namespace larlite {
     _q_max_v.clear();
     
     _mat_v.clear();
-  }  
+  }
+
+
+  PyObject* AlgoImageMaker::GetPyImage(const size_t plane)
+  {
+
+    if(plane >= _mat_v.size()) {
+      std::cout << "\t==X Plane doesn't exist\n";
+      throw std::exception();
+    }
+    
+    ::larcv::convert::NDArrayConverter converter;
+    return converter.toNDArray(_mat_v[plane]);
+
+  }
+  
 }
 #endif
