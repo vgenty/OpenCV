@@ -32,6 +32,11 @@ namespace larlite {
     auto clusters = _algo_cluster->DecideClusters(ev_hit,
 						  _algo_image->_mat_v);
     
+    // auto out_cluster = storage->get_data<event_cluster>("hullcluster");
+    // auto out_ass     = storage->get_data<event_ass>(out_cluster->name());
+
+
+    
     return true;
   }
   

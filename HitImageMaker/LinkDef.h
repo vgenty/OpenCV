@@ -15,6 +15,7 @@
 #pragma link C++ class larlite::AlgoImageMaker+;
 
 #pragma link C++ class larlite::BaseAlgoCluster+;
+#pragma link C++ class larlite::AlgoClusterHull+;
 
 #pragma link C++ class ProtoCluster+;
 //ADD_NEW_CLASS ... do not change this line

@@ -1,8 +1,8 @@
 //by vic
 //vgenty@nevis.columbia.edu
 
-#ifndef ALGOCLUSTERHOUGH_H
-#define ALGOCLUSTERHOUGH_H
+#ifndef ALGOCLUSTERHULL_H
+#define ALGOCLUSTERHULL_H
 
 #include <vector>
 #include <map>
@@ -24,15 +24,15 @@ typedef _object PyObject;
 
 namespace larlite {
 
-  class AlgoClusterHough : public BaseAlgoCluster {
+  class AlgoClusterHull : public BaseAlgoCluster {
 
   public:
 
     /// Default constructor
-    AlgoClusterHough(){ import_array(); }
+    AlgoClusterHull(){ import_array(); }
 
     /// Default destructor
-    virtual ~AlgoClusterHough(){}
+    virtual ~AlgoClusterHull(){}
 
     event_cluster DecideClusters(event_hit* hits,
 				 const std::vector<::cv::Mat>& images);

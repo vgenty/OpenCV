@@ -1,13 +1,13 @@
-#ifndef ALGOCLUSTERHOUGH_CXX
-#define ALGOCLUSTERHOUGH_CXX
+#ifndef ALGOCLUSTERHULL_CXX
+#define ALGOCLUSTERHULL_CXX
 
-#include "AlgoClusterHough.h"
+#include "AlgoClusterHull.h"
 
 #include "ProtoCluster.h"
 
 namespace larlite {
 
-  void AlgoClusterHough::init(const ::cv::Mat& image) {
+  void AlgoClusterHull::init(const ::cv::Mat& image) {
 
     auto size = image.size();
     auto type = image.type();
@@ -31,7 +31,7 @@ namespace larlite {
     _hulls2.clear();
   }
   
-  event_cluster AlgoClusterHough::DecideClusters(event_hit* hits,
+  event_cluster AlgoClusterHull::DecideClusters(event_hit* hits,
 						 const std::vector<::cv::Mat>& images) {
     
     
@@ -59,27 +59,21 @@ namespace larlite {
       auto& hits  = p_hits.second;
       auto& image = images.at( plane );
 
-      //temp
+      //temp, only look at plane2
       if (plane != 2) continue;
-      //temp
-
       
-      //Set it u
+      //Set it up
       init(image);
       
       //Dilate
-      std::cout << "\t(" << __FUNCTION__ << ")==> Dilating\n";
       auto kernel = ::cv::getStructuringElement( ::cv::MORPH_RECT, ::cv::Size(5,5) );
-
       ::cv::dilate(image,_dilated,kernel);
 
       //Gaussian Blur
-      std::cout << "\t(" << __FUNCTION__ << ")==> Bluring\n";
       ::cv::GaussianBlur(_dilated,_blur,::cv::Size(5,5),75);
       
       //Threshold
       //double threshold(InputArray src, OutputArray dst, double thresh, double maxval, int 
-      std::cout << "\t(" << __FUNCTION__ << ")==> Threshing\n";
       auto what = threshold(_blur,_binary,5,255,::cv::THRESH_BINARY); // what is the return of this?
       
 
@@ -90,7 +84,6 @@ namespace larlite {
       
       auto pi = double{3.14159};
       std::vector<::cv::Vec4i> lines;
-      std::cout << "\t(" << __FUNCTION__ << ")==> My friend Hough\n";
       ::cv::HoughLinesP(_binary, lines, 20.0, pi/180.0, 100, 100, 60);
       
       _houghs.resize(lines.size());
@@ -99,7 +92,6 @@ namespace larlite {
 		       (float) lines[i][2], (float) lines[i][3] };      
       
       //Canny
-      std::cout << "\t(" << __FUNCTION__ << ")==> Canny!\n";
       ::cv::Canny(_binary,_canny,0,1,3);
       
       // ==> page 100 of ``Computer Vision with OpenCV"
@@ -107,26 +99,20 @@ namespace larlite {
       // and all the contours are stored as a vector of contours (i.e. a vector of vectors of points).
 
       //Contours
-      std::cout << "\t(" << __FUNCTION__ << ")==> Contour\n";
       std::vector<std::vector<cv::Point> > cv_contour_v;
       std::vector<::cv::Vec4i> cv_hierarchy_v;
       ::cv::findContours(_canny,cv_contour_v,cv_hierarchy_v,
     			 CV_RETR_EXTERNAL,
     			 CV_CHAIN_APPROX_SIMPLE);
       
-      std::cout<< "\t(" << __FUNCTION__ << ")==> Found " << cv_contour_v.size()<<" contours..."<<std::endl;
-
       
       //
       //We can start building the skeleton clusters.
       //
       
       
-      // convexHull first, fill the protoclusters
-      std::cout<< "\t(" << __FUNCTION__ << ")==> Building protoclusters\n";
+      // convexHull first, fill the protoclusters with convex hull'd contours
       std::vector<std::vector<::cv::Point> > hull( cv_contour_v.size() );
-
-      //FUCK ME
       _hulls.resize(cv_contour_v.size());
 
       std::vector<ProtoCluster> p_clusters_v;
@@ -139,58 +125,47 @@ namespace larlite {
 	_hulls[i].resize(hull[i].size());
 
 	for(unsigned k = 0; k < hull[i].size(); ++k) {
-
 	  float x = (float) hull[i][k].x;
 	  float y = (float) hull[i][k].y;
 
 	  _hulls[i][k] = std::make_pair(x,y);
-	  
-					
 	}
 	
 	p_clusters_v.emplace_back(_hulls[i]);
-
       }
 
 
       // TODO : USE HOUGHLINE TO COMBINE PROTOCLUSTERS...
 
-      //for now just combine overlapping clusters (polygons)
+      //for now just combine overlapping clusters (polygons) can we do this recursively?
       std::vector<ProtoCluster> combined;
-      bool more_overlaps = true;
-      int n = 0;
-      int c = 0;
+      combined.reserve(cv_contour_v.size());
 
-      while(more_overlaps) {
+      //overlaps
+      std::vector<size_t> overlaps; overlaps.reserve(p_clusters_v.size());
+      
+      int n = 0; // number of overlaps seen
+      int c = 0; // loop counter
+
+      while(true) {
 	
 	n = 0;
 	std::map<size_t,bool> used;
 
 	if ( c  >  0 ) {
-	  p_clusters_v = combined;
+	  p_clusters_v = combined; // should use swap
 	  combined.clear();
 	}
 
 	
 	for(unsigned i = 0; i < p_clusters_v.size(); ++i) {
 	  used[i] = false;
-	  
 	  //is this necessary?
 	  p_clusters_v[i].polygon()->UntanglePolygon();
-	  
 	}
       
-	std::vector<size_t> overlaps; overlaps.reserve(p_clusters_v.size());
-
 	for(unsigned c1 = 0; c1 < p_clusters_v.size(); ++c1) {
 
-	  // std::cout << "{ ";
-
-	  // for(unsigned i = 0; i < p_clusters_v.size(); ++i)
-	  //   std::cout << "(" << i << "," << used[i] << "), ";
-
-	  // std::cout << "}\n";
-	
 	  auto& p_cluster1 = p_clusters_v[c1];
 	
 	  overlaps.clear();
@@ -204,7 +179,7 @@ namespace larlite {
 
 	    auto& p_cluster2 = p_clusters_v[c2];
 	  
-	    //polygons overlap, get their points, convexHull on them, create new ProtoCluster
+	    //check if they overlap
 	    if ( p_cluster1.polygon()->PolyOverlapSegments( *( p_cluster2.polygon() ) ) ) { 
 	      overlaps.push_back(c2);
 	      n++;
@@ -212,7 +187,7 @@ namespace larlite {
 	    
 	  }
 
-
+	  // no overlaps, continue
 	  if(overlaps.size() == 0)
 	    continue;
 	
@@ -220,9 +195,10 @@ namespace larlite {
 
 	  int n_points = 0;
 	  for(const auto& idx : overlaps)
+
 	    n_points += p_clusters_v[idx].polygon()->Size();
 
-	  //
+	  //needed for convexhull
 	  std::vector<cv::Point> combine; combine.reserve ( n_points );
 	  std::vector<cv::Point> hul;     hul.reserve     ( n_points );
 	
@@ -246,14 +222,16 @@ namespace larlite {
 	    out[k] = std::make_pair(x,y);
 	  
 	  }
-	
+
+	  //would be much easier if we could just emplace_back(Polygon);
 	  combined.emplace_back(out);
 
 	  for(const auto& idx : overlaps)
 	    used[idx] = true;
 
-	} // end C1 loop
-      
+	} // end c1 loop
+
+	//now add on the stuff that wasn't combined
 	for(const auto& u : used) {
 	  if ( u.second ) continue;
 
@@ -267,14 +245,15 @@ namespace larlite {
 	  combined.emplace_back(out);
 	}
 
-	if( n == 0 )
-	  break;
-	
+	if( n == 0 ) break;
 	c++;
+	
       }
 
-      //that was terrible!
+
+
       
+      //that was terrible!
       std::cout << "\t==> Combined size...: " << combined.size() << "\n";
 
       //print out the hulls
@@ -339,11 +318,11 @@ namespace larlite {
   }
 
 
-  size_t AlgoClusterHough::NumContours() const {
+  size_t AlgoClusterHull::NumContours() const {
     return _contour_v.size();
   }
   
-  PyObject* AlgoClusterHough::GetContour(const size_t contour_index) {
+  PyObject* AlgoClusterHull::GetContour(const size_t contour_index) {
 
     if(contour_index > _contour_v.size()){
       std::cout << "\t==X Invalid contour ID requested...\n";
