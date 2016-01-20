@@ -7,6 +7,55 @@
 
 namespace larlite {
 
+  AlgoClusterHull::AlgoClusterHull() {
+    _dilation_size = 5;
+    
+    _gauss_blur_size = 5;
+    _gauss_sigma_X = 75;
+
+    _thresh = 5; 
+    _maxval = 255; 
+
+    _hough_rho = 20.0;
+    //_hough_theta;
+    _hough_threshold = 100;
+    _hough_min_line_length = 100;
+    _hough_max_line_gap = 60;  
+		 
+    _canny_threshold1 = 0;
+    _canny_threshold2 = 1;
+    _canny_app_size = 3;  
+    
+    import_array();
+
+    init();
+  }
+  AlgoClusterHull::AlgoClusterHull(const ::fcllite::PSet &pset) {
+
+    _dilation_size   = pset.get<int>("DilationSize");
+    
+    _gauss_blur_size = pset.get<int>("GausBlurSize");
+    _gauss_sigma_X   = pset.get<int>("GausSigmaX");;
+
+    _thresh       = pset.get<int>   ("Thresh");
+    _maxval       = pset.get<double>("MaxVal");
+
+    _hough_rho             = pset.get<double>("HoughRho");
+    // _hough_theta           = pset.get<double>("HoughTheta");
+    _hough_threshold       = pset.get<int>   ("HoughThreshold");
+    _hough_min_line_length = pset.get<double>("HoughMinLineLength");
+    _hough_max_line_gap    = pset.get<double>("HoughMaxLineGap");
+		 
+    _canny_threshold1 = pset.get<double>("CannyThreshold1");
+    _canny_threshold2 = pset.get<double>("CannyThreshold2");
+    _canny_app_size   = pset.get<int>   ("CannyAppSize");
+
+    import_array();
+
+    init();
+
+  }
+  
   void AlgoClusterHull::init() {
     
     _dilated_v.resize(3);
@@ -86,15 +135,15 @@ namespace larlite {
       auto& _other_hits = _other_hits_v[p_plane];
       
       //Dilate
-      auto kernel = ::cv::getStructuringElement( ::cv::MORPH_RECT, ::cv::Size(5,5) );
+      auto kernel = ::cv::getStructuringElement( ::cv::MORPH_RECT, ::cv::Size(_dilation_size,_dilation_size) );
       ::cv::dilate(image,_dilated,kernel);
 
       //Gaussian Blur
-      ::cv::GaussianBlur(_dilated,_blur,::cv::Size(5,5),75);
+      ::cv::GaussianBlur(_dilated,_blur,::cv::Size(_gauss_blur_size,_gauss_blur_size),_gauss_sigma_X);
       
       //Threshold
       //double threshold(InputArray src, OutputArray dst, double thresh, double maxval, int 
-      auto what = threshold(_blur,_binary,5,255,::cv::THRESH_BINARY); // what is the return of this?
+      auto what = threshold(_blur,_binary,_thresh,_maxval,::cv::THRESH_BINARY); // what is the return of this?
       
       //HoughLinesP
       //void HoughLinesP(InputArray image, OutputArray lines,
@@ -103,7 +152,8 @@ namespace larlite {
       
       auto pi = double{3.14159};
       std::vector<::cv::Vec4i> lines;
-      ::cv::HoughLinesP(_binary, lines, 20.0, pi/180.0, 100, 100, 60);
+      ::cv::HoughLinesP(_binary, lines, _hough_rho, pi/180.0,
+			_hough_threshold, _hough_min_line_length, _hough_max_line_gap);
       
       _houghs.resize(lines.size());
       for(unsigned i = 0; i < lines.size(); ++i )
@@ -111,7 +161,7 @@ namespace larlite {
 		       (float) lines[i][2], (float) lines[i][3] };      
       
       //Canny
-      ::cv::Canny(_binary,_canny,0,1,3);
+      ::cv::Canny(_binary,_canny,_canny_threshold1,_canny_threshold2,_canny_app_size);
       
       // ==> page 100 of ``Computer Vision with OpenCV"
       // In OpenCV, each individual contour is stored as a vector of points,

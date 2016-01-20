@@ -8,7 +8,7 @@ namespace larlite {
   bool HitImageManager::initialize() {
 
     std::cout << "\t==> Initilizing HitImageManager\n";
-    
+
     return true;
   }
   

@@ -13,6 +13,7 @@ OBJECTS = $(SOURCES:.cxx=.o)
 # include options for this package
 INCFLAGS  = -I.                       #Include itself
 INCFLAGS += $(shell larlite-config --includes)
+INCFLAGS += $(shell basictool-config --includes)
 INCFLAGS += $(shell python-config --includes)
 INCFLAGS += -I$(shell python -c "import numpy; print numpy.get_include()")
 INCFLAGS += -I/usr/local/include/
@@ -25,6 +26,7 @@ OSNAMEMODE      = $(OSNAME)
 
 LDFLAGS += -L$(shell python-config --prefix)/lib/
 LDFLAGS += $(shell larlite-config --libs)
+LDFLAGS += $(shell basictool-config --libs)
 LDFLAGS += $(shell python-config --ldflags)
 LDFLAGS += -L/usr/local/lib/ -lopencv_core -lopencv_highgui -lopencv_objdetect -lopencv_features2d -lopencv_imgproc
 LDFLAGS += -L$(LARLITE_LIBDIR) -lOpenCV_Utils

@@ -24,6 +24,8 @@ typedef _object PyObject;
 
 #include "Utils/NDArrayConverter.h"
 
+#include "FhiclLite/PSet.h"
+
 namespace larlite {
 
   class AlgoClusterHull : public BaseAlgoCluster {
@@ -31,8 +33,11 @@ namespace larlite {
   public:
 
     /// Default constructor
-    AlgoClusterHull(){ import_array(); init(); }
+    AlgoClusterHull();
 
+    ///Alternative ctor
+    AlgoClusterHull(const ::fcllite::PSet &pset);
+    
     /// Default destructor
     virtual ~AlgoClusterHull(){}
 
@@ -72,6 +77,28 @@ namespace larlite {
     std::vector<std::vector<ProtoCluster> > _p_clusters_v;
     
     std::vector< std::vector<std::pair<float,float> > > _other_hits_v;
+
+
+    //Various parameters for image processing set by FHiCL
+    int _dilation_size;
+
+    int _gauss_blur_size;
+    int _gauss_sigma_X;
+    int _gauss_sigma_Y; // unused, sigma_y == sigma_x when unspecified
+
+    int    _thresh;
+    double _maxval;
+
+    double _hough_rho;
+    double _hough_theta;
+    int    _hough_threshold;
+    double _hough_min_line_length;
+    double _hough_max_line_gap;
+
+    double _canny_threshold1;
+    double _canny_threshold2;
+    int    _canny_app_size;
+    
     
   };
 }
