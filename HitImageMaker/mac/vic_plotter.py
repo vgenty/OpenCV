@@ -27,11 +27,14 @@ while ( storage.next_event() ):
 
     cluster_to_hit_ass = ass_data.association(clusters.id(),hits.id());
     
-
     fig, ax = plt.subplots(figsize=(10,6))
 
     for c in xrange(cluster_to_hit_ass.size()) :
         xx= []; yy= [];
+
+        if clusters[c].View() != 0:
+            continue
+        
         for h in xrange(cluster_to_hit_ass[c].size()):
             hit_idx = cluster_to_hit_ass[c][h]
             xx.append(hits[hit_idx].WireID().Wire); yy.append(hits[hit_idx].PeakTime())

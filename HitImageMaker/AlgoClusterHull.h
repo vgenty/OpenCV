@@ -29,7 +29,7 @@ namespace larlite {
   public:
 
     /// Default constructor
-    AlgoClusterHull(){ import_array(); }
+    AlgoClusterHull(){ import_array(); init(); }
 
     /// Default destructor
     virtual ~AlgoClusterHull(){}
@@ -40,46 +40,33 @@ namespace larlite {
 			 const std::vector<::cv::Mat>& images);
     
  
-    PyObject* GetDilatedImage() { ::larcv::convert::NDArrayConverter converter; return converter.toNDArray(_dilated); }
-    PyObject* GetBlurImage()    { ::larcv::convert::NDArrayConverter converter; return converter.toNDArray(_blur);    }
-    PyObject* GetBinaryImage()  { ::larcv::convert::NDArrayConverter converter; return converter.toNDArray(_binary);  }
-    PyObject* GetCannyImage()   { ::larcv::convert::NDArrayConverter converter; return converter.toNDArray(_canny);   }
-
+    PyObject* GetDilatedImage(size_t plane) { ::larcv::convert::NDArrayConverter converter; return converter.toNDArray( _dilated_v[plane] ); }
+    PyObject* GetBlurImage   (size_t plane) { ::larcv::convert::NDArrayConverter converter; return converter.toNDArray( _blur_v   [plane] ); }
+    PyObject* GetBinaryImage (size_t plane) { ::larcv::convert::NDArrayConverter converter; return converter.toNDArray( _binary_v [plane] ); }
+    PyObject* GetCannyImage  (size_t plane) { ::larcv::convert::NDArrayConverter converter; return converter.toNDArray( _canny_v  [plane] ); }
 
     
-    PyObject* GetContour(const size_t contour_index);
-    size_t NumContours() const;
-    
-    size_t contoursize() { return _contour_v2.size(); }
-    std::vector<std::pair<double,double> >& contour(const size_t c) { return _contour_v2.at(c); }
-
-    std::vector< std::vector<std::pair<float,float> > >& hulls()     { return _hulls; }
-    std::vector< std::vector<std::pair<float,float> > >& hulls2()    { return _hulls2; }
-    std::vector<std::pair<float,float> >               & plane2pts() { return _plane2pts; }
+    // std::vector<std::pair<double,double> >& contour(size_t plane) { return _contour_v.at(plane); }
 
 
-    std::vector<std::array<float,4> >& houghs() { return _houghs; }
+    std::vector<std::array<float,4> >& houghs(size_t plane) { return _houghs_v.at(plane); }
+    std::vector< std::vector<std::pair<float,float> > >& hulls(size_t plane)   { return _hulls_v.at(plane); }
     
   private:
     
-    void init(const ::cv::Mat& image);
+    void reset(const ::cv::Mat& image,size_t plane);
+    void init ();
       
-    ::cv::Mat _dilated;
-    ::cv::Mat _blur;
-    ::cv::Mat _binary;
-    ::cv::Mat _canny;
+    std::vector<::cv::Mat> _dilated_v;
+    std::vector<::cv::Mat> _blur_v;
+    std::vector<::cv::Mat> _binary_v;
+    std::vector<::cv::Mat> _canny_v;
 
-    std::vector<larcv::Point2DArray> _contour_v;
-
-    std::vector<std::vector<std::pair<double,double> > > _contour_v2;
-
-    std::vector<std::array<float,4> > _houghs;
-
-    std::vector<std::vector<std::pair<float,float> > > _hulls;
-
-    std::vector<std::vector<std::pair<float,float> > > _hulls2;
-
-    std::vector<std::pair<float,float> > _plane2pts;
+    // std::vector<std::vector<std::vector<larcv::Point2DArray> > > > _contour_v;
+ 
+    std::vector<std::vector<std::array<float,4> > >  _houghs_v;
+    
+    std::vector< std::vector<std::vector<std::pair<float,float> > > >_hulls_v;
     
   };
 }
