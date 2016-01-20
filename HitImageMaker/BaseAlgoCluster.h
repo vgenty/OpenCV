@@ -6,8 +6,9 @@
 
 #include <iostream>
 
-#include "DataFormat/cluster.h"
 #include "DataFormat/hit.h"
+#include "DataFormat/cluster.h"
+#include "DataFormat/event_ass.h"
 
 #include "opencv2/core/mat.hpp"
 #include "opencv2/core/core.hpp"
@@ -25,8 +26,10 @@ namespace larlite {
     /// Default destructor
     virtual ~BaseAlgoCluster(){}
 
-    virtual event_cluster DecideClusters(event_hit* hits,
-					 const std::vector<::cv::Mat>& images) = 0;
+    virtual void DecideClusters(event_hit* hits,
+				event_cluster* clusters,
+				AssSet_t* my_ass,
+				const std::vector<::cv::Mat>& images) = 0;
     
   };
 

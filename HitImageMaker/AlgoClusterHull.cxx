@@ -29,14 +29,14 @@ namespace larlite {
     _houghs.clear();
     _hulls.clear();
     _hulls2.clear();
+    _plane2pts.clear();
+    
   }
   
-  event_cluster AlgoClusterHull::DecideClusters(event_hit* hits,
-						 const std::vector<::cv::Mat>& images) {
-    
-    
-    event_cluster evt_clusters;
-    
+  void AlgoClusterHull::DecideClusters(event_hit* hits,
+				       event_cluster* clusters,
+				       AssSet_t* my_ass,
+				       const std::vector<::cv::Mat>& images) {
     
     //First thing, we should partition the hits up into planes
     std::map<size_t, std::vector<const hit*> > plane_hits;
@@ -52,15 +52,15 @@ namespace larlite {
       plane_hits[hit.WireID().Plane].push_back( &hit );
     
     
-    for(const auto& p_hits: plane_hits) {
+    for(const auto& p_hit: plane_hits) { //loop over each plane
 
 
-      auto& plane = p_hits.first;
-      auto& hits  = p_hits.second;
-      auto& image = images.at( plane );
-
+      auto& p_plane = p_hit.first;
+      auto& p_hits  = p_hit.second;
+      auto& image   = images.at( p_plane );
+      
       //temp, only look at plane2
-      if (plane != 2) continue;
+      if (p_plane != 2) continue;
       
       //Set it up
       init(image);
@@ -268,14 +268,104 @@ namespace larlite {
 	}
       }
 	
-      //Ok now we can make "clusters"
+      //Ok now we can make "clusters" just do it ghetto, copy it over from AlgoImageMaker
+      
+      //xx
+        
+      std::vector<int>   x_min_v;
+      std::vector<int>   x_max_v;
+      std::vector<int>   y_min_v;
+      std::vector<int>   y_max_v;
+      
+      std::map<size_t,bool> used_hit;
 
-      
-      
+      for(unsigned i = 0; i < hits->size(); ++i)  {
+
+	auto& h = hits->at(i);
 	
+	size_t plane = h.WireID().Plane;
+	
+	if(h.Integral() < 5. || plane != 2) {
+	  used_hit[i] = true;
+	  continue;
+	}
+	
+
+	if(plane >= x_min_v.size()) {
+	  x_min_v.resize(plane+1,4000);
+	  x_max_v.resize(plane+1,0);
+	  y_min_v.resize(plane+1,9600);
+	  y_max_v.resize(plane+1,0);
+	}
+	
+	int wire = h.WireID().Wire;
+	int time = (int)(h.PeakTime());
+	
+	
+	if( x_min_v[plane] > wire ) x_min_v[plane] = wire;
+	if( x_max_v[plane] < wire ) x_max_v[plane] = wire;
+	if( y_min_v[plane] > time ) y_min_v[plane] = time;
+	if( y_max_v[plane] < time ) y_max_v[plane] = time;
+	
+	used_hit[i] = false;
+	
+      }
+
+      std::vector<size_t> hit_idx; hit_idx.reserve(p_hits.size());
+      
+      geo::PlaneID pID(0,0,2);
+
+      int q = 0;
+      
+      for(auto& c : combined) {
+	
+	for(size_t i = 0; i < hits->size(); ++i) {
+	  
+	  if( used_hit[i] ) continue;
+	  
+	  auto& hit = hits->at(i);
+
+	  float wire     =  (float) hit.WireID().Wire;
+	  float time     =  (float) hit.PeakTime();
+	  size_t plane   =  hit.WireID().Plane;
+	  
+	  wire -= (float) x_min_v[plane];
+	  time -= (float) y_min_v[plane];
+	  
+	  if ( q == 0 )
+	    _plane2pts.push_back(std::make_pair(time,wire));
+	  	    
+	  if( c.polygon()->PointInside(std::make_pair(time,wire)) )
+	    { hit_idx.push_back(i); used_hit[i] = true; }
+
+	  
+	}
+	
+	q++;
+	std::cout << "We found ..." << hit_idx.size() << " inside this cluster...\n";
+	
+	if( hit_idx.size() > 0 ) {
+	  cluster cc;
+	  cc.set_id(clusters->size());
+	  cc.set_original_producer(clusters->name());
+	  cc.set_planeID(pID);
+	  cc.set_view(geo::View_t(2));
+	  
+	  clusters->emplace_back(cc);
+	  
+	  AssUnit_t one_ass; one_ass.reserve( p_hits.size() );
+	  my_ass->emplace_back(one_ass);
+	  
+	} else { continue; }
+	
+	auto& this_ass = my_ass->back();
+
+	for(const auto& h : hit_idx)
+	  this_ass.push_back(h);
+
+	hit_idx.clear();
+      }
           
-    
-  
       // Protoclusters are just convex hull objects in Polygon2D
       // They hold a pointer list of hough segments that begin, and pass through them
       // std::cout<< "\t(" << __FUNCTION__ << ")==> Assigning hough segments to protoclusters\n";
@@ -314,7 +404,7 @@ namespace larlite {
     
     }
     
-    return evt_clusters;
+
   }
 
 

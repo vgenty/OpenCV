@@ -34,8 +34,10 @@ namespace larlite {
     /// Default destructor
     virtual ~AlgoClusterHull(){}
 
-    event_cluster DecideClusters(event_hit* hits,
-				 const std::vector<::cv::Mat>& images);
+    void  DecideClusters(event_hit* hits,
+			 event_cluster* clusters,
+			 AssSet_t* my_ass,
+			 const std::vector<::cv::Mat>& images);
     
  
     PyObject* GetDilatedImage() { ::larcv::convert::NDArrayConverter converter; return converter.toNDArray(_dilated); }
@@ -51,8 +53,9 @@ namespace larlite {
     size_t contoursize() { return _contour_v2.size(); }
     std::vector<std::pair<double,double> >& contour(const size_t c) { return _contour_v2.at(c); }
 
-    std::vector< std::vector<std::pair<float,float> > >& hulls()  { return _hulls; }
-    std::vector< std::vector<std::pair<float,float> > >& hulls2() { return _hulls2; }
+    std::vector< std::vector<std::pair<float,float> > >& hulls()     { return _hulls; }
+    std::vector< std::vector<std::pair<float,float> > >& hulls2()    { return _hulls2; }
+    std::vector<std::pair<float,float> >               & plane2pts() { return _plane2pts; }
 
 
     std::vector<std::array<float,4> >& houghs() { return _houghs; }
@@ -75,6 +78,9 @@ namespace larlite {
     std::vector<std::vector<std::pair<float,float> > > _hulls;
 
     std::vector<std::vector<std::pair<float,float> > > _hulls2;
+
+    std::vector<std::pair<float,float> > _plane2pts;
+    
   };
 }
 #endif

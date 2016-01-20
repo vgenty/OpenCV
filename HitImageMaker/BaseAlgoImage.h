@@ -28,8 +28,7 @@ namespace larlite {
     virtual const ::cv::Mat* GetImage   (const size_t plane) = 0;
     
     // PyObject* GetImage(const size_t plane);
-    std::vector<::cv::Mat> _mat_v;
-    
+    std::vector<::cv::Mat>   _mat_v;
     
   private:
     std::string _name_s;

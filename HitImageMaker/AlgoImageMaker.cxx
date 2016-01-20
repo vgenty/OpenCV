@@ -40,16 +40,14 @@ namespace larlite {
 		    _y_max_v[plane] - _y_min_v[plane] + 1,
 		    CV_8UC1, cvScalar(0.));
       
-      // ::cv::Mat canny;
-      // canny.create(mat.size(),mat.type());
-      
       _mat_v.emplace_back(mat);
-
-      // _canny_v.emplace_back(canny);
+      
     }
 
-    // _contour_v.resize(x_min_v.size());
-
+    // std::cout << "(" << _x_min_v[2] << ","
+    // 	      << _y_min_v[2] << ")\n";
+      
+    
     for(auto const& h : *ev_hit) {
 
       if(h.Integral()<5.) continue;
