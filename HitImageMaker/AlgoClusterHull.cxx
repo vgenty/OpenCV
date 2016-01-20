@@ -3,7 +3,7 @@
 
 #include "AlgoClusterHull.h"
 
-#include "ProtoCluster.h"
+
 
 namespace larlite {
 
@@ -14,9 +14,11 @@ namespace larlite {
     _binary_v .resize(3);
     _canny_v  .resize(3);
 
-
     _houghs_v.resize(3);
     _hulls_v .resize(3);
+
+    _p_clusters_v.resize(3);
+    _other_hits_v.resize(3);
   }
 
   void AlgoClusterHull::reset(const ::cv::Mat& image,size_t plane) {
@@ -37,6 +39,9 @@ namespace larlite {
 
     _houghs_v [plane].clear();
     _hulls_v  [plane].clear();
+
+    _p_clusters_v[plane].clear();
+    _other_hits_v[plane].clear();
     
   }
   
@@ -75,6 +80,10 @@ namespace larlite {
 
       auto& _houghs   = _houghs_v[p_plane];
       auto& _hulls    = _hulls_v [p_plane];
+
+      auto& _p_clusters = _p_clusters_v[p_plane];
+
+      auto& _other_hits = _other_hits_v[p_plane];
       
       //Dilate
       auto kernel = ::cv::getStructuringElement( ::cv::MORPH_RECT, ::cv::Size(5,5) );
@@ -129,8 +138,8 @@ namespace larlite {
       std::vector<std::vector<std::pair<float,float> > > hulls;
       hulls.resize(cv_contour_v.size());
 
-      std::vector<ProtoCluster> p_clusters_v;
-      p_clusters_v.reserve( cv_contour_v.size() );
+
+      _p_clusters.reserve( cv_contour_v.size() );
 
       for( unsigned i = 0; i < cv_contour_v.size(); i++ ) {
 
@@ -145,7 +154,7 @@ namespace larlite {
 	  hulls[i][k] = std::make_pair(x,y);
 	}
 	
-	p_clusters_v.emplace_back(hulls[i]);
+	_p_clusters.emplace_back(hulls[i]);
       }
 
 
@@ -154,7 +163,7 @@ namespace larlite {
       combined.reserve(cv_contour_v.size());
 
       //Overlaps, holds indicies
-      std::vector<size_t> overlaps; overlaps.reserve(p_clusters_v.size());
+      std::vector<size_t> overlaps; overlaps.reserve(_p_clusters.size());
       
       int n = 0; // number of overlaps seen
       int c = 0; // loop counter
@@ -165,31 +174,31 @@ namespace larlite {
 	std::map<size_t,bool> used;
 
 	if ( c  >  0 ) {
-	  p_clusters_v = combined; // should use swap!
+	  _p_clusters = combined; // should use swap!
 	  combined.clear();
 	}
 
 	
-	for(unsigned i = 0; i < p_clusters_v.size(); ++i) {
+	for(unsigned i = 0; i < _p_clusters.size(); ++i) {
 	  used[i] = false;
 	  //is this necessary?
-	  p_clusters_v[i].polygon()->UntanglePolygon();
+	  _p_clusters[i].polygon()->UntanglePolygon();
 	}
       
-	for(unsigned c1 = 0; c1 < p_clusters_v.size(); ++c1) {
+	for(unsigned c1 = 0; c1 < _p_clusters.size(); ++c1) {
 
-	  auto& p_cluster1 = p_clusters_v[c1];
+	  auto& p_cluster1 = _p_clusters[c1];
 	
 	  overlaps.clear();
 	
 	  if ( used[c1] ) continue;
 		  
-	  for(unsigned c2 = 0; c2 < p_clusters_v.size(); ++c2) {
+	  for(unsigned c2 = 0; c2 < _p_clusters.size(); ++c2) {
 	  
 	    if ( c1 == c2 )  continue;
 	    if ( used[c2] )  continue;
 
-	    auto& p_cluster2 = p_clusters_v[c2];
+	    auto& p_cluster2 = _p_clusters[c2];
 	  
 	    //check if they overlap
 	    if ( p_cluster1.polygon()->PolyOverlapSegments( *( p_cluster2.polygon() ) ) ) { 
@@ -210,7 +219,7 @@ namespace larlite {
 	  int n_points = 0;
 	  for(const auto& idx : overlaps)
 
-	    n_points += p_clusters_v[idx].polygon()->Size();
+	    n_points += _p_clusters[idx].polygon()->Size();
 
 	  //create convex hull out of combined points
 	  std::vector<cv::Point> combine; combine.reserve ( n_points );
@@ -219,8 +228,8 @@ namespace larlite {
 	  std::vector<std::pair<float,float> > out;
 
 	  for(const auto& idx : overlaps) {
-	    for(unsigned p = 0; p < p_clusters_v[idx].polygon()->Size(); ++p) {
-	      auto point = p_clusters_v[idx].polygon()->Point(p);
+	    for(unsigned p = 0; p < _p_clusters[idx].polygon()->Size(); ++p) {
+	      auto point = _p_clusters[idx].polygon()->Point(p);
 	      combine.emplace_back(point.first,point.second);
 	    }
 	  }
@@ -251,16 +260,16 @@ namespace larlite {
 	  if ( u.second ) continue;
 
 	  // again, can be avoided if we know std::move
-	  std::vector<std::pair<float,float> > out ( p_clusters_v[u.first].polygon()->Size() );
+	  std::vector<std::pair<float,float> > out ( _p_clusters[u.first].polygon()->Size() );
 
 	  //loop over points
-	  for(unsigned k = 0; k < p_clusters_v[u.first].polygon()->Size(); ++k) 
+	  for(unsigned k = 0; k < _p_clusters[u.first].polygon()->Size(); ++k) 
 
-	    out[k] = p_clusters_v[u.first].polygon()->Point(k);
+	    out[k] = _p_clusters[u.first].polygon()->Point(k);
 	
 	  combined.emplace_back(out);
 	}
-
+	
 	//did we combine any? if not we are done
 	if( n == 0 ) break;
 
@@ -268,18 +277,20 @@ namespace larlite {
 	
       }
 
+      //swap the data
+      std::swap(_p_clusters,combined);
 
       //that was terrible.
-      std::cout << "\t==> Combined size...: " << combined.size() << "\n";
+      std::cout << "\t==> _P_Clusters size...: " << _p_clusters.size() << "\n";
 
       //write the final hulls to be written to output
-      for(unsigned k = 0; k < combined.size(); ++k) {
+      for(unsigned k = 0; k < _p_clusters.size(); ++k) {
 	
-	_hulls.resize( combined.size()) ;
+	_hulls.resize( _p_clusters.size()) ;
 	
-	for(unsigned p = 0; p < combined[k].polygon()->Size(); ++p)  {
+	for(unsigned p = 0; p < _p_clusters[k].polygon()->Size(); ++p)  {
 
-	  _hulls[k].emplace_back(combined[k].polygon()->Point(p));
+	  _hulls[k].emplace_back(_p_clusters[k].polygon()->Point(p));
 
 	}
       }
@@ -332,7 +343,7 @@ namespace larlite {
 
       int q = 0;
       
-      for(auto& c : combined) {
+      for(auto& c : _p_clusters) {
 	
 	for(size_t i = 0; i < hits->size(); ++i) {
 	  
@@ -348,7 +359,8 @@ namespace larlite {
 	  time -= (float) y_min_v[plane];
 	  
 	  if( c.polygon()->PointInside(std::make_pair(time,wire)) )
-	    { hit_idx.push_back(i); used_hit[i] = true; }
+	    { hit_idx.push_back(i); used_hit[i] = true; c.add_hit( std::make_pair(time,wire) ); }
+	  
 	  
 	}
 	
@@ -372,12 +384,31 @@ namespace larlite {
 	auto& this_ass = my_ass->back();
 
 	for(const auto& h : hit_idx)
-	  this_ass.push_back(h);
-
+	  { this_ass.push_back(h); }
+		      
 	hit_idx.clear();
+	
       }
 
+      //this is only temporary!!!!
+      for(size_t i = 0; i < hits->size(); ++i) {
+	  
+	if( used_hit[i] ) continue;
+	
+	auto& hit = hits->at(i);
+	
+	float wire     =  (float) hit.WireID().Wire;
+	float time     =  (float) hit.PeakTime();
+	size_t plane   =  hit.WireID().Plane;
+	
+	wire -= (float) x_min_v[plane];
+	time -= (float) y_min_v[plane];
 
+	_other_hits.emplace_back(std::make_pair(time,wire));
+	
+      }
+      
+      
     }
     
 

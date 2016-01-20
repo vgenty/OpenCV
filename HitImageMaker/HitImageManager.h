@@ -38,6 +38,7 @@ namespace larlite {
 
     void SetImageMaker  (BaseAlgoImage*   algo_image)   { _algo_image   = algo_image;   }
     void SetClusterMaker(BaseAlgoCluster* algo_cluster) { _algo_cluster = algo_cluster; }
+
     
   protected:
     // ?
@@ -46,7 +47,7 @@ namespace larlite {
     
     BaseAlgoImage*   _algo_image;
     BaseAlgoCluster* _algo_cluster;
-    
+
   };
 }
 #endif
