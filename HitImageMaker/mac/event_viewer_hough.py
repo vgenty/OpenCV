@@ -28,7 +28,7 @@ my_proc.set_data_to_write(fmwk.data.kAssociation,'hullcluster')
 
 my_unit         = fmwk.HitImageManager()
 my_imagemaker   = fmwk.AlgoImageMaker()
-my_clusterhull  = fmwk.AlgoClusterHough(pset)
+my_clusterhull  = fmwk.AlgoClusterHoughConnect(pset)
 
 my_unit.SetImageMaker(my_imagemaker)
 my_unit.SetClusterMaker(my_clusterhull)

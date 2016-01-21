@@ -1,8 +1,8 @@
 //by vic
 //vgenty@nevis.columbia.edu
 
-#ifndef ALGOCLUSTERHOUGHCONNECT_H
-#define ALGOCLUSTERHOUGHCONNECT_H
+#ifndef ALGOCLUSTERHOUGHSIMILAR_H
+#define ALGOCLUSTERHOUGHSIMILAR_H
 
 #include <vector>
 #include <map>
@@ -28,18 +28,18 @@ typedef _object PyObject;
 
 namespace larlite {
 
-  class AlgoClusterHoughConnect : public BaseAlgoCluster {
+  class AlgoClusterHoughSimilar : public BaseAlgoCluster {
 
   public:
 
     /// Default constructor
-    AlgoClusterHoughConnect();
+    AlgoClusterHoughSimilar();
 
     ///Alternative ctor
-    AlgoClusterHoughConnect(const ::fcllite::PSet &pset);
+    AlgoClusterHoughSimilar(const ::fcllite::PSet &pset);
     
     /// Default destructor
-    virtual ~AlgoClusterHoughConnect(){}
+    virtual ~AlgoClusterHoughSimilar(){}
 
     void DecideClusters(event_hit* hits,
 			event_cluster* clusters,
@@ -80,16 +80,9 @@ namespace larlite {
 
 
     int  resolve_overlaps(std::vector<ProtoCluster>& _p_clusters);
-    void combine_clusters(std::map<size_t,std::vector<size_t> >& to_combine,
-			  std::vector<ProtoCluster>& _p_clusters);
-
-    std::vector<std::pair<float,float> > convert_singleconvex(ProtoCluster& _pcluster);
-    std::vector<std::pair<float,float> > convert_fewconvex   (std::vector<size_t>& idx,
-							      std::vector<ProtoCluster>& _pcluster);
+    // void combine_clusters(std::map<size_t,std::vector<size_t> >& to_combine,
+    // 			  std::vector<ProtoCluster>& _p_clusters);
     
-    void convert_convexhull(std::vector<ProtoCluster>& _p_clusters);
-
-
     //Various parameters for image processing set by FHiCL
     int _dilation_size;
 
