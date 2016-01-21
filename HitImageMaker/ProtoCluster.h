@@ -15,7 +15,12 @@ public:
   ProtoCluster() {}
   
   ProtoCluster(const std::vector< std::pair<float,float> >& points)
-    : _polygon(points)
+    :
+    _polygon(points),
+    _avg_length(-1),
+    _avg_angle(-1),
+    _w_avg_angle(-1)
+    
   { _hlines.reserve(50); }
 
   // ProtoCluster(ProtoCluster& p)
@@ -29,23 +34,25 @@ public:
 
   Polygon* polygon() { return &_polygon; }
 
-  void AddLine    (float* line)                 { _hlines.push_back(line); }
-  // void AddHits(std::vector<larlite::hit>& hits) { _hits = hits;            }
-
+  void AddLine(float* line){ _hlines.push_back(line); }
+  void ComputeDirection();
+  
   std::vector<std::pair<float,float> >& hits() { return _hits; }
 
   //why can't this be reference?
   void add_hit(std::pair<float,float>  h) { return _hits.emplace_back(h); }
-  
-  // Based on the hough lines that intersect me, determine the most probable direction of myself (with some spread)
-  // void DetermineProbableDirection();
-  
+
+  float _avg_length;
+  float _avg_angle;
+  float _w_avg_angle;
+
+  size_t n_lines() { return _hlines.size(); }
+    
 private:
   
   Polygon _polygon;
 
   std::vector<float* > _hlines;
-  //std::vector<size_t>  _hitidx;
   std::vector<std::pair<float,float> >  _hits;
   
 

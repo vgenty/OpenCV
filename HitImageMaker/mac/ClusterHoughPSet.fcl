@@ -17,5 +17,7 @@ ClusterHough:
 	CannyThreshold1 : 0
 	CannyThreshold2 : 1
 	CannyAppSize    : 3
-	
+
+	MergeMinDistance : 100
+	MergeMinAngle : 0.44 
 }

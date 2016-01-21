@@ -25,6 +25,10 @@ namespace larlite {
     _canny_threshold1 = 0;
     _canny_threshold2 = 1;
     _canny_app_size = 3;  
+
+
+    _merge_min_distance = 20.0;
+    _merge_min_angle    = 0.35;// ? right?
     
     import_array();
 
@@ -50,6 +54,9 @@ namespace larlite {
     _canny_threshold2 = pset.get<double>("CannyThreshold2");
     _canny_app_size   = pset.get<int>   ("CannyAppSize");
 
+    _merge_min_distance = pset.get<float>("MergeMinDistance");
+    _merge_min_angle    = pset.get<float>("MergeMinAngle");
+    
     import_array();
 
     init();
@@ -95,9 +102,9 @@ namespace larlite {
   }
   
   void AlgoClusterHoughSimilar::DecideClusters(event_hit* hits,
-				       event_cluster* clusters,
-				       AssSet_t* my_ass,
-				       const std::vector<::cv::Mat>& images) {
+					       event_cluster* clusters,
+					       AssSet_t* my_ass,
+					       const std::vector<::cv::Mat>& images) {
     
     //First thing, we should partition the hits up into planes
     std::map<size_t, std::vector<const hit*> > plane_hits;
@@ -207,24 +214,103 @@ namespace larlite {
 	_p_clusters.emplace_back(hulls[i]);
       }
 
+      //
+      //
+      //
+      /////////////////////////////////////////////////////
       
-      // //resolve the overlaps between clusters (generically)
-      // auto qq = resolve_overlaps(_p_clusters);
-      // std::cout << "\t==> Resolved overlaps in " << qq << " loops\n";
+      
+      
       
 
+      
+      
+      
+      
+      //convert protoclusters to convexhull
+      convert_convexhull(_p_clusters);
+      
       std::cout << "\t==> Resolving Overlaps...\n";
       auto qq = resolve_overlaps(_p_clusters);
       std::cout << "\t==> Resolved overlaps in " << qq << " loops\n";
       
       
-      //Now just combine overlapping clusters (polygons) can we do recursively?
+      
+      // for each hline
+      std::cout << "\t size of houghs is : " << _houghs.size() << "\n";
+      for( auto& hline :  _houghs ) {
+
+	for(int i = 0; i < _p_clusters.size(); ++i) {
+
+	  auto first  = std::make_pair(hline[0],hline[1]);
+	  auto second = std::make_pair(hline[2],hline[3]);
+
+	  if ( ! ( _p_clusters[i].polygon() -> PointInside(first) ) )
+	    continue;
+	  
+	  if ( ! ( _p_clusters[i].polygon() -> PointInside(second) ) )
+	    continue;
+
+	  _p_clusters[i].AddLine(hline.data());
+
+	}
+      }
+
+      //Each protocluster has list of hlines
+      
+      for(auto & pc : _p_clusters) pc.ComputeDirection();
+      
+
+      std::map<size_t,std::vector<size_t> > compatable;
+      // Are two pclusters compatable
+      for(unsigned i = 0; i < _p_clusters.size(); ++i ) {
+
+	auto& p1 = _p_clusters[i];
+
+	if (p1.n_lines() == 0) continue;
+	
+	for(unsigned j = 0; j < _p_clusters.size(); ++j ) {
+
+	  if ( j == i ) continue;
+
+	  auto& p2 = _p_clusters[j];
+
+	  if (p2.n_lines() == 0) continue;
+	  
+	  auto angle_diff = std::abs( p1._avg_angle - p2._avg_angle );
+
+	  if ( angle_diff > 3.14159 )
+	    angle_diff -= 3.14159;
+
+	  std::cout << "\t (???) Compatable indicies (i,j) = (" << i << "," << j << ") found\n"
+		    << "\t with min distance = " << p1.polygon()->Distance( * p2.polygon() ) << "\n"
+		    << "\t min angle = " << angle_diff << " and p1 hline size = " << p1.n_lines() << "\n"
+		    << "\t and p2 hline size = " << p2.n_lines() << "\n";
+
+	  //are they close enough?
+	  if ( ! ( p1.polygon()->Distance( * p2.polygon() ) <= _merge_min_distance ) )
+	    continue;
+
+	  if ( ! ( angle_diff <= _merge_min_angle ) )
+	    continue;
+
+	  compatable[i].push_back(j);
+	}
+      }
 
 
-      //swap the data
+      //combine them
+      combine_clusters(compatable,_p_clusters);
+      convert_convexhull(_p_clusters);
 
+      std::cout << "\t==> Resolving Overlaps...again??\n";
+      auto rr = resolve_overlaps(_p_clusters);
+      std::cout << "\t==> Resolved overlaps in " << rr << " loops\n";
+
+
+      
       //that was terrible.
-      std::cout << "\t==> _P_Clusters size...: " << _p_clusters.size() << "\n";
+      std::cout << "\t==> _p_Clusters size...: " << _p_clusters.size() << "\n";
 
       //write the final hulls to be written to output
       for(unsigned k = 0; k < _p_clusters.size(); ++k) {
@@ -427,33 +513,11 @@ namespace larlite {
 	  n_points += _p_clusters[idx].polygon()->Size();
 
 	//create convex hull out of combined points
-	std::vector<cv::Point> combine; combine.reserve ( n_points );
-	std::vector<cv::Point> hul;     hul.reserve     ( n_points );
+	auto out = convert_fewconvex(overlaps,_p_clusters);
 	
-	std::vector<std::pair<float,float> > out;
-
-	for(const auto& idx : overlaps) {
-	  for(unsigned p = 0; p < _p_clusters[idx].polygon()->Size(); ++p) {
-	    auto point = _p_clusters[idx].polygon()->Point(p);
-	    combine.emplace_back(point.first,point.second);
-	  }
-	}
-	
-	convexHull( ::cv::Mat(combine), hul, false );
-	out.resize( hul.size() );
-	
-	for(unsigned k = 0; k < hul.size(); ++k) {
-	  
-	  float x = (float) hul[k].x;
-	  float y = (float) hul[k].y;
-	  
-	  out[k] = std::make_pair(x,y);
-	  
-	}
-
 	//create new protocluster from overlap
 	combined.emplace_back(out);
-
+	
 	//mark the used overlaps
 	for(const auto& idx : overlaps)
 	  used[idx] = true;
@@ -488,76 +552,153 @@ namespace larlite {
 
   }
     
-  // void AlgoClusterHoughSimilar::combine_clusters(std::map<size_t,std::vector<size_t> >& to_combine,
-  // 					  std::vector<ProtoCluster>& _p_clusters) {
-
-  //   std::cout << "a\n";
-  //   std::vector<ProtoCluster> combined;
-  //   combined.reserve(_p_clusters.size());
-
-  //   std::map<size_t,bool> used;
-  //   for(size_t k = 0; k < _p_clusters.size(); ++k) used[k] = false;
-
-  //   std::vector<std::pair<float,float> > out; out.reserve(_p_clusters.size());
+  void AlgoClusterHoughSimilar::combine_clusters(std::map<size_t,std::vector<size_t> >& to_combine,
+						 std::vector<ProtoCluster>& _p_clusters) {
     
-  //   for ( const auto& c_index : to_combine ) {
 
-  //     //has this one been connected already
-  //     // if( used[c_index.first] ) continue;
+    std::vector<ProtoCluster> combined;
+    combined.reserve(_p_clusters.size());
 
-  //     std::cout << "proto cluster index: " << c_index.first << " connected to " << c_index.second.size() << " other points! {";
-  //     for(const auto& connected : c_index.second) { std::cout << connected << ","; } std::cout << "}\n";
-  //     out.clear();
+    std::map<size_t,bool> used;
+    for(size_t k = 0; k < _p_clusters.size(); ++k) used[k] = false;
 
-  //     //get the cluster
-  //     auto& clus1 = _p_clusters.at(c_index.first);
-  //     used[ c_index.first ] = true;
+    std::vector<std::pair<float,float> > out; out.reserve(_p_clusters.size());
+    
+    for ( const auto& c_index : to_combine ) {
 
-  //     //put points inside out
-  //     for(unsigned p = 0; p < clus1.polygon()->Size(); ++p)
-  // 	out.emplace_back( clus1.polygon()->Point(p) );
+      //has this one been connected already
+      // if( used[c_index.first] ) continue;
 
-  //     // loop over the ones that are connected
-  //     for(const auto& connected : c_index.second) {
+      std::cout << "proto cluster index: " << c_index.first << " connected to " << c_index.second.size() << " other points! {";
+      for(const auto& connected : c_index.second) { std::cout << connected << ","; } std::cout << "}\n";
+      out.clear();
 
-  // 	//has this one been connected already
-  // 	// if( used[connected] ) continue;
+      //get the cluster
+      auto& clus1 = _p_clusters.at(c_index.first);
+      used[ c_index.first ] = true;
+
+      //put points inside out
+      for(unsigned p = 0; p < clus1.polygon()->Size(); ++p)
+	out.emplace_back( clus1.polygon()->Point(p) );
+
+      // loop over the ones that are connected
+      for(const auto& connected : c_index.second) {
+
+	//has this one been connected already
+	// if( used[connected] ) continue;
 		
-  // 	//get the cluster
-  // 	auto& clus2 = _p_clusters.at(connected);
-  // 	used[connected] = true;
+	//get the cluster
+	auto& clus2 = _p_clusters.at(connected);
+	used[connected] = true;
 
-  // 	//put points inside out
-  // 	for(unsigned p = 0; p < clus2.polygon()->Size(); ++p)
-  // 	  out.emplace_back( clus2.polygon()->Point(p) );
+	//put points inside out
+	for(unsigned p = 0; p < clus2.polygon()->Size(); ++p)
+	  out.emplace_back( clus2.polygon()->Point(p) );
 	
-  //     }
+      }
       
-  //     combined.emplace_back(out);
+      combined.emplace_back(out);
       
-  //   }
-
+    }
     
-  //   //now add on the clusters that were not combined
-  //   for(const auto& u : used) {
-  //     if ( u.second ) continue;
+    
+    //now add on the clusters that were not combined
+    for(const auto& u : used) {
+      if ( u.second ) continue;
 
-  //     // again, can be avoided if we know std::move
-  //     std::vector<std::pair<float,float> > out2 ( _p_clusters[u.first].polygon()->Size() );
+      // again, can be avoided if we know std::move
+      std::vector<std::pair<float,float> > out2 ( _p_clusters[u.first].polygon()->Size() );
 
-  //     //loop over points
-  //     for(unsigned k = 0; k < _p_clusters[u.first].polygon()->Size(); ++k) 
+      //loop over points
+      for(unsigned k = 0; k < _p_clusters[u.first].polygon()->Size(); ++k) 
 
-  // 	out2[k] = _p_clusters[u.first].polygon()->Point(k);
+	out2[k] = _p_clusters[u.first].polygon()->Point(k);
 	
-  //     combined.emplace_back(out2);
-  //   }
+      combined.emplace_back(out2);
+    }
 
 
+    std::swap(_p_clusters,combined);    
+  }
+
+
+
+  std::vector<std::pair<float,float> > AlgoClusterHoughSimilar::convert_fewconvex(std::vector<size_t>& idx,
+										  std::vector<ProtoCluster>& _pcluster) {
+
+
+    std::vector<cv::Point> combine; combine.reserve ( 100 );
+    std::vector<cv::Point> hul;     hul.reserve     ( 100 );
     
-  //   std::swap(_p_clusters,combined);    
- 
+    std::vector<std::pair<float,float> > out; 
+
+    for(const auto& id : idx) {
+
+      for(unsigned p = 0; p < _pcluster[id].polygon()->Size(); ++p) {
+	auto point = _pcluster[id].polygon()->Point(p);
+	combine.emplace_back(point.first,point.second);
+      }
+      
+    }
     
-  // }
+    convexHull( ::cv::Mat(combine), hul, false );
+    out.resize( hul.size() );
+    
+    for(unsigned k = 0; k < hul.size(); ++k) {
+      
+      float x = (float) hul[k].x;
+      float y = (float) hul[k].y;
+      
+      out[k] = std::make_pair(x,y);
+      
+    }
+    
+    return out;
+    
+  }
+
+
+
+
+  
+  std::vector<std::pair<float,float> > AlgoClusterHoughSimilar::convert_singleconvex(ProtoCluster& _pcluster) {
+
+    std::vector<cv::Point> combine; combine.reserve ( 100 );
+    std::vector<cv::Point> hul;     hul.reserve     ( 100 );
+    
+    std::vector<std::pair<float,float> > out; 
+    
+    for(unsigned p = 0; p < _pcluster.polygon()->Size(); ++p) {
+      auto point = _pcluster.polygon()->Point(p);
+      combine.emplace_back(point.first,point.second);
+    }
+    
+    convexHull( ::cv::Mat(combine), hul, false );
+    out.resize( hul.size() );
+    
+    for(unsigned k = 0; k < hul.size(); ++k) {
+      
+      float x = (float) hul[k].x;
+      float y = (float) hul[k].y;
+      
+      out[k] = std::make_pair(x,y);
+      
+    }
+    
+    return out;
+    
+  }
+  
+  void AlgoClusterHoughSimilar::convert_convexhull(std::vector<ProtoCluster>& _p_clusters) {
+
+    std::vector<ProtoCluster> hulled; hulled.reserve(_p_clusters.size());
+
+    for(unsigned g = 0 ; g < _p_clusters.size() ; ++g)
+
+      hulled.emplace_back(convert_singleconvex(_p_clusters[g]));
+
+    std::swap(_p_clusters,hulled);
+  }
+  
 }
 #endif

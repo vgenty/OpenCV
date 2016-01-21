@@ -74,6 +74,10 @@ class Polygon{
   ///Calculate the opening angle at the specified vertex:
   float InteriorAngle(unsigned int p) const;
 
+  /// Return minimum distance between two polygons
+  float Distance(const Polygon &poly2);
+  
+  
   friend bool operator==(const Polygon& lhs, const Polygon& rhs);
   friend bool operator!=(const Polygon& lhs, const Polygon& rhs);
   friend std::ostream &operator<<(std::ostream &out, Polygon poly);     //output

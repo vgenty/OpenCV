@@ -19,6 +19,7 @@
 #pragma link C++ class larlite::AlgoClusterHoughConnect+;
 #pragma link C++ class larlite::AlgoClusterHoughSimilar+;
 
+
 #pragma link C++ class ProtoCluster+;
 //ADD_NEW_CLASS ... do not change this line
 #endif

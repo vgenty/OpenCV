@@ -80,9 +80,16 @@ namespace larlite {
 
 
     int  resolve_overlaps(std::vector<ProtoCluster>& _p_clusters);
-    // void combine_clusters(std::map<size_t,std::vector<size_t> >& to_combine,
-    // 			  std::vector<ProtoCluster>& _p_clusters);
+    void combine_clusters(std::map<size_t,std::vector<size_t> >& to_combine,
+			  std::vector<ProtoCluster>& _p_clusters);
+
+    std::vector<std::pair<float,float> > convert_singleconvex(ProtoCluster& _pcluster);
+    std::vector<std::pair<float,float> > convert_fewconvex   (std::vector<size_t>& idx,
+							      std::vector<ProtoCluster>& _pcluster);
     
+    void convert_convexhull(std::vector<ProtoCluster>& _p_clusters);
+
+
     //Various parameters for image processing set by FHiCL
     int _dilation_size;
 
@@ -102,6 +109,9 @@ namespace larlite {
     double _canny_threshold1;
     double _canny_threshold2;
     int    _canny_app_size;
+
+    float _merge_min_distance;
+    float _merge_min_angle;
     
     
   };

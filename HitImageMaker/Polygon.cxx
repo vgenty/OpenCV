@@ -445,6 +445,30 @@ float Polygon::InteriorAngle(unsigned int p) const {
   }
 }
 
+
+
+float Polygon::Distance(const Polygon &poly2) {
+
+  float min_distance = 9999999.0;
+
+    for (unsigned int i = 0; i < this->Size(); i++) {
+      for (unsigned int j = 0; j < poly2.Size(); j++) {
+	
+	const auto& x1 = this->Point(i).first;
+	const auto& y1 = this->Point(i).second;
+	const auto& x2 = poly2.Point(j).first;
+	const auto& y2 = poly2.Point(j).second;
+	
+	float d = std::sqrt( (x1 - x2) * (x1 - x2) + (y1 - y2) * (y1 - y2) );
+
+	if ( d < min_distance ) min_distance = d;
+	 
+      }
+    }
+
+  return min_distance;
+}
+
 bool operator==(const Polygon& lhs, const Polygon& rhs) {
   return lhs.vertices == rhs.vertices;
 }
