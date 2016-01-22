@@ -1,13 +1,13 @@
-#ifndef ALGOCLUSTERHULL_CXX
-#define ALGOCLUSTERHULL_CXX
+#ifndef ALGOCLUSTERHULLTWO_CXX
+#define ALGOCLUSTERHULLTWO_CXX
 
-#include "AlgoClusterHull.h"
+#include "AlgoClusterHullTwo.h"
 
 
 
 namespace larlite {
 
-  AlgoClusterHull::AlgoClusterHull() {
+  AlgoClusterHullTwo::AlgoClusterHullTwo() {
     _dilation_size = 5;
     
     _gauss_blur_size = 5;
@@ -30,7 +30,7 @@ namespace larlite {
 
     init();
   }
-  AlgoClusterHull::AlgoClusterHull(const ::fcllite::PSet &pset) {
+  AlgoClusterHullTwo::AlgoClusterHullTwo(const ::fcllite::PSet &pset) {
 
     _dilation_size   = pset.get<int>("DilationSize");
     
@@ -56,7 +56,7 @@ namespace larlite {
 
   }
   
-  void AlgoClusterHull::init() {
+  void AlgoClusterHullTwo::init() {
     
     _dilated_v.resize(3);
     _blur_v   .resize(3);
@@ -65,12 +65,12 @@ namespace larlite {
 
     _houghs_v.resize(3);
     _hulls_v .resize(3);
-    _contours_v.resize(3);
+
     _p_clusters_v.resize(3);
     _other_hits_v.resize(3);
   }
 
-  void AlgoClusterHull::reset(const ::cv::Mat& image,size_t plane) {
+  void AlgoClusterHullTwo::reset(const ::cv::Mat& image,size_t plane) {
 
     auto size = image.size();
     auto type = image.type();
@@ -86,8 +86,6 @@ namespace larlite {
     _binary_v [plane].create(size,type);
     _canny_v  [plane].create(size,type);
 
-    _contours_v[plane].clear();
-
     _houghs_v [plane].clear();
     _hulls_v  [plane].clear();
 
@@ -96,7 +94,7 @@ namespace larlite {
     
   }
   
-  void AlgoClusterHull::DecideClusters(event_hit* hits,
+  void AlgoClusterHullTwo::DecideClusters(event_hit* hits,
 				       event_cluster* clusters,
 				       AssSet_t* my_ass,
 				       const std::vector<::cv::Mat>& images) {
@@ -133,19 +131,22 @@ namespace larlite {
       auto& _hulls    = _hulls_v [p_plane];
 
       auto& _p_clusters = _p_clusters_v[p_plane];
-      auto& _other_hits = _other_hits_v[p_plane];
-      auto& _contours   = _contours_v[p_plane];
-	
-      //Dilate
-      auto kernel = ::cv::getStructuringElement( ::cv::MORPH_RECT, ::cv::Size(_dilation_size,_dilation_size) );
-      ::cv::dilate(image,_dilated,kernel);
 
-      //Gaussian Blur
-      ::cv::GaussianBlur(_dilated,_blur,::cv::Size(_gauss_blur_size,_gauss_blur_size),_gauss_sigma_X);
-      
+      auto& _other_hits = _other_hits_v[p_plane];
+
+
       //Threshold
       //double threshold(InputArray src, OutputArray dst, double thresh, double maxval, int 
-      auto what = threshold(_blur,_binary,_thresh,_maxval,::cv::THRESH_BINARY); // what is the return of this?
+      auto what = threshold(image,_binary,_thresh,_maxval,::cv::THRESH_BINARY); // what is the return of this?
+
+      //Dilate
+      auto kernel = ::cv::getStructuringElement( ::cv::MORPH_RECT, ::cv::Size(_dilation_size,_dilation_size) );
+      ::cv::dilate(_binary,_dilated,kernel);
+      // ::cv::erode(_binary,_dilated,kernel);
+
+      //Gaussian Blur
+      //::cv::GaussianBlur(_dilated,_blur,::cv::Size(_gauss_blur_size,_gauss_blur_size),_gauss_sigma_X);
+      
       
       //HoughLinesP
       //void HoughLinesP(InputArray image, OutputArray lines,
@@ -163,7 +164,7 @@ namespace larlite {
 		       (float) lines[i][2], (float) lines[i][3] };      
       
       //Canny
-      ::cv::Canny(_binary,_canny,_canny_threshold1,_canny_threshold2,_canny_app_size);
+      ::cv::Canny(_dilated,_canny,_canny_threshold1,_canny_threshold2,_canny_app_size);
       
       // ==> page 100 of ``Computer Vision with OpenCV"
       // In OpenCV, each individual contour is stored as a vector of points,
@@ -172,13 +173,10 @@ namespace larlite {
       //Contours
       std::vector<std::vector<cv::Point> > cv_contour_v;
       std::vector<::cv::Vec4i> cv_hierarchy_v;
-      ::cv::findContours(_binary,cv_contour_v,cv_hierarchy_v,
-      			 CV_RETR_EXTERNAL,
-      			 CV_CHAIN_APPROX_SIMPLE);
+      ::cv::findContours(_canny,cv_contour_v,cv_hierarchy_v,
+    			 CV_RETR_EXTERNAL,
+    			 CV_CHAIN_APPROX_SIMPLE);
       
-      // ::cv::findContours(_canny,cv_contour_v,cv_hierarchy_v,
-      // 			 CV_RETR_EXTERNAL,
-      // 			 CV_CHAIN_APPROX_NONE);
       
       /////////////////////////////////////////////////////
       //This may be logical break here for new framework?
@@ -188,18 +186,6 @@ namespace larlite {
       
       
       // convexHull first, fill the protoclusters with convex hull'd contours
-
-      _contours.reserve( cv_contour_v.size() );
-
-      for(auto& contour : cv_contour_v) {
-	std::vector<std::pair<float,float> > _contour; _contour.reserve( contour.size() );
-	for(auto& point : contour) {
-	  _contour.push_back(std::make_pair(point.x,point.y));
-	}
-	_contours.emplace_back(_contour);
-      }
-	  
-      
       std::vector<std::vector<::cv::Point> > hull( cv_contour_v.size() );
 
       std::vector<std::vector<std::pair<float,float> > > hulls;

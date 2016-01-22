@@ -18,6 +18,7 @@
 #pragma link C++ class larlite::AlgoClusterHull+;
 #pragma link C++ class larlite::AlgoClusterHoughConnect+;
 #pragma link C++ class larlite::AlgoClusterHoughSimilar+;
+#pragma link C++ class larlite::AlgoClusterHullTwo+;
 
 
 #pragma link C++ class ProtoCluster+;

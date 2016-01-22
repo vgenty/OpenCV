@@ -1,8 +1,8 @@
 //by vic
 //vgenty@nevis.columbia.edu
 
-#ifndef ALGOCLUSTERHULL_H
-#define ALGOCLUSTERHULL_H
+#ifndef ALGOCLUSTERHULLTWO_H
+#define ALGOCLUSTERHULLTWO_H
 
 #include <vector>
 #include <map>
@@ -28,18 +28,18 @@ typedef _object PyObject;
 
 namespace larlite {
 
-  class AlgoClusterHull : public BaseAlgoCluster {
+  class AlgoClusterHullTwo : public BaseAlgoCluster {
 
   public:
 
     /// Default constructor
-    AlgoClusterHull();
+    AlgoClusterHullTwo();
 
     ///Alternative ctor
-    AlgoClusterHull(const ::fcllite::PSet &pset);
+    AlgoClusterHullTwo(const ::fcllite::PSet &pset);
     
     /// Default destructor
-    virtual ~AlgoClusterHull(){}
+    virtual ~AlgoClusterHullTwo(){}
 
     void DecideClusters(event_hit* hits,
 			event_cluster* clusters,
@@ -58,8 +58,7 @@ namespace larlite {
     std::vector<ProtoCluster>& p_clusters(size_t plane)                       { return _p_clusters_v.at(plane); }
 
     //temporary
-    std::vector<std::pair<float,float> >& other_hits(size_t plane)               { return _other_hits_v.at(plane); }
-    std::vector<std::vector<std::pair<float,float> > >& contours(size_t plane)   { return _contours_v.at(plane); }
+    std::vector<std::pair<float,float> >& other_hits(size_t plane) { return _other_hits_v.at(plane); }
     
   private:
     
@@ -78,9 +77,8 @@ namespace larlite {
     std::vector<std::vector<ProtoCluster> > _p_clusters_v;
     
     std::vector< std::vector<std::pair<float,float> > > _other_hits_v;
-    std::vector< std::vector< std::vector<std::pair<float,float> > > > _contours_v;
 
-    
+
     //Various parameters for image processing set by FHiCL
     int _dilation_size;
 

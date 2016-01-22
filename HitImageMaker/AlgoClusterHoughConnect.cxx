@@ -170,7 +170,7 @@ namespace larlite {
       //Contours
       std::vector<std::vector<cv::Point> > cv_contour_v;
       std::vector<::cv::Vec4i> cv_hierarchy_v;
-      ::cv::findContours(_canny,cv_contour_v,cv_hierarchy_v,
+      ::cv::findContours(_binary,cv_contour_v,cv_hierarchy_v,
     			 CV_RETR_EXTERNAL,
     			 CV_CHAIN_APPROX_SIMPLE);
       

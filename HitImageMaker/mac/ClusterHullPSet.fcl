@@ -1,10 +1,10 @@
 ClusterHull:
 {
 
-	DilationSize : 20
+	DilationSize : 10
 
-	GausBlurSize : 15
-	GausSigmaX   : 75
+	GausBlurSize : 5
+	GausSigmaX   : 5
 
 	Thresh : 5
 	MaxVal : 255
@@ -14,8 +14,9 @@ ClusterHull:
 	HoughMinLineLength : 100
 	HoughMaxLineGap    : 5
 
-	CannyThreshold1 : 0
-	CannyThreshold2 : 1
+
+	CannyThreshold1 : 10
+	CannyThreshold2 : 100
 	CannyAppSize    : 3
 	
 }

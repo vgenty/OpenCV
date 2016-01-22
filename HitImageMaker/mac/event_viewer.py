@@ -8,6 +8,8 @@ import matplotlib.collections as mc
 import numpy as np
 import cv2
 
+import sys
+
 from larlite import larlite as fmwk
 from ROOT import fcllite
 
@@ -18,7 +20,7 @@ config = cfg_mgr.Config()
 pset = config.get_pset("ClusterHull");
 
 my_proc = fmwk.ana_processor()
-my_proc.add_input_file("/Users/vgenty/Desktop/single_e.root")
+my_proc.add_input_file(sys.argv[1])
 
 my_proc.set_io_mode(fmwk.storage_manager.kBOTH)
 my_proc.set_output_file("deleteme.root")
@@ -39,7 +41,6 @@ my_proc.add_process(my_unit)
 
 
 def getview(plane,ax) :
-    
     houghs = my_clusterhull.houghs(plane)
     hh=[]
     for h in xrange(houghs.size()):
@@ -58,6 +59,9 @@ def getview(plane,ax) :
             x_array.append(hull[p].first)
             y_array.append(hull[p].second)
 
+        x_array.append(x_array[0])
+        y_array.append(y_array[0])
+        
         ax.plot(x_array,y_array,color='black',lw=2)
 
     pts = my_clusterhull.other_hits(plane)
@@ -91,7 +95,7 @@ def getview(plane,ax) :
 
     ax.add_collection(cc)
 
-    return x
+    return ax
 
 
 

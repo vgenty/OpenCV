@@ -11,6 +11,8 @@ import cv2
 from larlite import larlite as fmwk
 from ROOT import fcllite
 
+import sys
+
 cfg_mgr = fcllite.ConfigManager()
 cfg_mgr.AddCfgFile("../mac/ClusterHoughPSet.fcl")
 
@@ -18,7 +20,7 @@ config = cfg_mgr.Config()
 pset = config.get_pset("ClusterHough");
 
 my_proc = fmwk.ana_processor()
-my_proc.add_input_file("/Users/vgenty/Desktop/single_e.root")
+my_proc.add_input_file(sys.argv[1])
 
 my_proc.set_io_mode(fmwk.storage_manager.kBOTH)
 my_proc.set_output_file("deleteme.root")
@@ -28,7 +30,7 @@ my_proc.set_data_to_write(fmwk.data.kAssociation,'hullcluster')
 
 my_unit         = fmwk.HitImageManager()
 my_imagemaker   = fmwk.AlgoImageMaker()
-my_clusterhull  = fmwk.AlgoClusterHoughSimilar(pset)
+my_clusterhull  = fmwk.AlgoClusterHoughConnect(pset)
 
 my_unit.SetImageMaker(my_imagemaker)
 my_unit.SetClusterMaker(my_clusterhull)
