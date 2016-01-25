@@ -33,14 +33,23 @@ namespace larlite {
       if( _y_max_v[plane] < time ) _y_max_v[plane] = time;
       if( _q_max_v[plane] < q    ) _q_max_v[plane] = q;
     }
+
+    std::cout << "x min v size : " << _x_min_v.size() << "\n";
     
     for(size_t plane=0; plane<_x_min_v.size(); ++plane) {
+      std::cout << "plane " << plane << "\n";
+      std::cout << "max,minX" << _x_max_v[plane] - _x_min_v[plane] + 1 << "\n";
+      std::cout << "max,minY" << _y_max_v[plane] - _y_min_v[plane] + 1 << "\n";
 
-      ::cv::Mat mat(_x_max_v[plane] - _x_min_v[plane] + 1,
-		    _y_max_v[plane] - _y_min_v[plane] + 1,
-		    CV_8UC1, cvScalar(0.));
-      
-      _mat_v.emplace_back(mat);
+      if ( _x_max_v[plane] - _x_min_v[plane] + 1 > 0 && _y_max_v[plane] - _y_min_v[plane] + 1 > 0) {
+	::cv::Mat mat(_x_max_v[plane] - _x_min_v[plane] + 1,
+		      _y_max_v[plane] - _y_min_v[plane] + 1,
+		      CV_8UC1, cvScalar(0.));
+	
+	_mat_v.emplace_back(mat);
+      }
+      else
+	_mat_v.emplace_back(0,0,CV_8UC1,cvScalar(0.));
       
     }
 

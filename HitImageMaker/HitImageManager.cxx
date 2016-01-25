@@ -19,6 +19,7 @@ namespace larlite {
     
     
     //just do one plane for now
+    std::cout << "creating image.........................\n";
     _algo_image->CreateImage(ev_hit);
     
 
@@ -29,13 +30,13 @@ namespace larlite {
     auto ev_ass     = storage->get_data<event_ass>(ev_cluster->name());
 
     AssSet_t my_ass;
-    
+    std::cout << "deciding clusters.........................\n";
     _algo_cluster->DecideClusters(ev_hit,
 				  ev_cluster,
 				  &my_ass,
 				  _algo_image->_mat_v);
     
-    
+    std::cout << "setting association.........................\n";
     ev_ass->set_association( ev_cluster->id(), ev_hit->id(), my_ass );
     
     storage->set_id(storage->run_id(),

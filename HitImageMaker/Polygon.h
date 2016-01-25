@@ -1,5 +1,5 @@
 /**
- * \file Polygon.h
+ \file Polygon.h
  *
  * \ingroup ClusterRecoUtil
  * 
@@ -76,7 +76,11 @@ class Polygon{
 
   /// Return minimum distance between two polygons
   float Distance(const Polygon &poly2);
-  
+
+  /// Return index position of two closest points
+  std::pair<size_t,size_t> TwoClosest(const Polygon &poly2);
+
+  bool RemoveVertex(size_t index);
   
   friend bool operator==(const Polygon& lhs, const Polygon& rhs);
   friend bool operator!=(const Polygon& lhs, const Polygon& rhs);
@@ -86,6 +90,7 @@ class Polygon{
   /// utility function used in polygon overlap determination
   bool PolyOverlapSegments(const Polygon &poly2) const;
   
+
   
 private:
 

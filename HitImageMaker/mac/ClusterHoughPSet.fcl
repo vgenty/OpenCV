@@ -1,16 +1,16 @@
 ClusterHough:
 {
 
-	DilationSize : 20
+	DilationSize : 5
 
 	GausBlurSize : 15
 	GausSigmaX   : 75
 
-	Thresh : 5
+	Thresh : 1
 	MaxVal : 255
 
-	HoughRho           : 20.0
-	HoughThreshold     : 100
+	HoughRho           : 1
+	HoughThreshold     : 15 #this needs to be tweaked
 	HoughMinLineLength : 100
 	HoughMaxLineGap    : 5
 
@@ -18,6 +18,6 @@ ClusterHough:
 	CannyThreshold2 : 1
 	CannyAppSize    : 3
 
-	MergeMinDistance : 100
+	MergeMinDistance : 10
 	MergeMinAngle : 0.44 
 }

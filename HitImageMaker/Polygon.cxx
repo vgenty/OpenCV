@@ -469,6 +469,50 @@ float Polygon::Distance(const Polygon &poly2) {
   return min_distance;
 }
 
+std::pair<size_t,size_t> Polygon::TwoClosest(const Polygon &poly2) {
+
+  float min_distance = 9999999.0;
+  std::pair<size_t,size_t> index;
+  
+    for (unsigned int i = 0; i < this->Size(); i++) {
+      for (unsigned int j = 0; j < poly2.Size(); j++) {
+	
+	const auto& x1 = this->Point(i).first;
+	const auto& y1 = this->Point(i).second;
+	const auto& x2 = poly2.Point(j).first;
+	const auto& y2 = poly2.Point(j).second;
+	
+	float d = std::sqrt( (x1 - x2) * (x1 - x2) + (y1 - y2) * (y1 - y2) );
+
+	if ( d < min_distance )  { min_distance = d; index = std::make_pair(i,j); }
+	 
+      }
+    }
+
+    return index;
+}
+
+bool Polygon::RemoveVertex(size_t index) {
+  
+  std::vector<std::pair<float,float> > new_vertices(vertices.size() - 1);
+
+  int y = -1;
+  std::cout << "index: " << index;
+  for(unsigned i = 0; i < vertices.size(); ++i) {
+
+    if (index == i)
+      continue;
+    ++y;
+    //std::cout << " (i,y) = " << "("<<i<<","<<y<<")\n";
+    new_vertices[y] = vertices[i];
+  }
+  
+  // std::cout << "  vertices.size()-1 : " << vertices.size()-1 << " and y = " << y << std::endl;
+  std::swap(new_vertices,vertices);
+
+  return true;
+}
+
 bool operator==(const Polygon& lhs, const Polygon& rhs) {
   return lhs.vertices == rhs.vertices;
 }

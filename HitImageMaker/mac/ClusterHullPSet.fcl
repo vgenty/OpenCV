@@ -6,7 +6,7 @@ ClusterHull:
 	GausBlurSize : 5
 	GausSigmaX   : 5
 
-	Thresh : 5
+	Thresh : 1
 	MaxVal : 255
 
 	HoughRho           : 20.0
