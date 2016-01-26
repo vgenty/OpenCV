@@ -497,7 +497,7 @@ bool Polygon::RemoveVertex(size_t index) {
   std::vector<std::pair<float,float> > new_vertices(vertices.size() - 1);
 
   int y = -1;
-  std::cout << "index: " << index;
+  // std::cout << "index: " << index;
   for(unsigned i = 0; i < vertices.size(); ++i) {
 
     if (index == i)

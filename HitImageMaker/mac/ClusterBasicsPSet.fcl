@@ -1,0 +1,11 @@
+ClusterBasics:
+{
+
+ DilationSize : 5
+ BlurSize : 5
+		 
+
+ Thresh : 0
+MaxVal : 255
+
+}

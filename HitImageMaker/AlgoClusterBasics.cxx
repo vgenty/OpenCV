@@ -1,13 +1,12 @@
-#ifndef ALGOCLUSTERHOUGHSIMILAR_CXX
-#define ALGOCLUSTERHOUGHSIMILAR_CXX
+#ifndef ALGOCLUSTERBASICS_CXX
+#define ALGOCLUSTERBASICS_CXX
 
-#include "AlgoClusterHoughSimilar.h"
-
+#include "AlgoClusterBasics.h"
 
 
 namespace larlite {
 
-  AlgoClusterHoughSimilar::AlgoClusterHoughSimilar() {
+  AlgoClusterBasics::AlgoClusterBasics() {
     _dilation_size = 5;
     
     _gauss_blur_size = 5;
@@ -17,7 +16,9 @@ namespace larlite {
     _maxval = 255; 
 
     _hough_rho = 20.0;
+
     //_hough_theta;
+
     _hough_threshold = 100;
     _hough_min_line_length = 100;
     _hough_max_line_gap = 60;  
@@ -34,28 +35,13 @@ namespace larlite {
 
     init();
   }
-  AlgoClusterHoughSimilar::AlgoClusterHoughSimilar(const ::fcllite::PSet &pset) {
+  AlgoClusterBasics::AlgoClusterBasics(const ::fcllite::PSet &pset) {
 
     _dilation_size   = pset.get<int>("DilationSize");
-    
-    _gauss_blur_size = pset.get<int>("GausBlurSize");
-    _gauss_sigma_X   = pset.get<int>("GausSigmaX");;
+    _blur_size       = pset.get<int>("BlurSize");
 
     _thresh       = pset.get<int>   ("Thresh");
     _maxval       = pset.get<double>("MaxVal");
-
-    _hough_rho             = pset.get<double>("HoughRho");
-    // _hough_theta           = pset.get<double>("HoughTheta");
-    _hough_threshold       = pset.get<int>   ("HoughThreshold");
-    _hough_min_line_length = pset.get<double>("HoughMinLineLength");
-    _hough_max_line_gap    = pset.get<double>("HoughMaxLineGap");
-		 
-    _canny_threshold1 = pset.get<double>("CannyThreshold1");
-    _canny_threshold2 = pset.get<double>("CannyThreshold2");
-    _canny_app_size   = pset.get<int>   ("CannyAppSize");
-
-    _merge_min_distance = pset.get<float>("MergeMinDistance");
-    _merge_min_angle    = pset.get<float>("MergeMinAngle");
     
     import_array();
 
@@ -63,7 +49,7 @@ namespace larlite {
 
   }
   
-  void AlgoClusterHoughSimilar::init() {
+  void AlgoClusterBasics::init() {
     
     _dilated_v.resize(3);
     _blur_v   .resize(3);
@@ -71,13 +57,16 @@ namespace larlite {
     _canny_v  .resize(3);
 
     _houghs_v.resize(3);
+    _real_hough_v.resize(3);
     _hulls_v .resize(3);
-
+    
+    _possiblebreak_v.resize(3);
+    
     _p_clusters_v.resize(3);
     _other_hits_v.resize(3);
   }
 
-  void AlgoClusterHoughSimilar::reset(const ::cv::Mat& image,size_t plane) {
+  void AlgoClusterBasics::reset(const ::cv::Mat& image,size_t plane) {
 
     auto size = image.size();
     auto type = image.type();
@@ -86,25 +75,27 @@ namespace larlite {
     _blur_v   [plane].release();
     _binary_v [plane].release();
     _canny_v  [plane].release();
-    
-    
+
+    // std::cout << "in " << __FUNCTION__ << " size : " << size << " type: " << type << "\n";
     _dilated_v[plane].create(size,type);
     _blur_v   [plane].create(size,type);
     _binary_v [plane].create(size,type);
     _canny_v  [plane].create(size,type);
 
-    _houghs_v [plane].clear();
-    _hulls_v  [plane].clear();
+    _houghs_v    [plane].clear();
+    _real_hough_v[plane].clear();
+    _hulls_v     [plane].clear();
 
+    _possiblebreak_v[plane].clear();
     _p_clusters_v[plane].clear();
     _other_hits_v[plane].clear();
     
   }
   
-  void AlgoClusterHoughSimilar::DecideClusters(event_hit* hits,
-					       event_cluster* clusters,
-					       AssSet_t* my_ass,
-					       const std::vector<::cv::Mat>& images) {
+  void AlgoClusterBasics::DecideClusters(event_hit* hits,
+				       event_cluster* clusters,
+				       AssSet_t* my_ass,
+				       const std::vector<::cv::Mat>& images) {
     
     //First thing, we should partition the hits up into planes
     std::map<size_t, std::vector<const hit*> > plane_hits;
@@ -122,215 +113,91 @@ namespace larlite {
     
     
     for(const auto& p_hit: plane_hits) { //loop over each plane
+      // std::cout << "\n\n\n\n\t++++++++++a\n\n\n\n" ;
 
       auto& p_plane = p_hit.first;
+      // std::cout << p_plane << "\n";
+
       auto& p_hits  = p_hit.second;
+
+      if ( p_plane > images.size() - 1 )
+	continue;
+	
       auto& image   = images.at( p_plane );
 
+      if ( image.size() == cv::Size(0,0) )
+	continue;
+      
       reset(image,p_plane);
      
       auto& _dilated = _dilated_v[p_plane];
       auto& _blur    = _blur_v   [p_plane];
       auto& _binary  = _binary_v [p_plane];
-      auto& _canny   = _canny_v  [p_plane];
+      // auto& _canny   = _canny_v  [p_plane];
 
-      auto& _houghs   = _houghs_v[p_plane];
-      auto& _hulls    = _hulls_v [p_plane];
+      //auto& _houghs   = _houghs_v    [p_plane];
+      auto& _hulls    = _hulls_v     [p_plane];
 
       auto& _p_clusters = _p_clusters_v[p_plane];
 
       auto& _other_hits = _other_hits_v[p_plane];
-      
-      //Dilate
-      auto kernel = ::cv::getStructuringElement( ::cv::MORPH_RECT, ::cv::Size(_dilation_size,_dilation_size) );
-      ::cv::dilate(image,_dilated,kernel);
 
-      //Gaussian Blur
-      ::cv::GaussianBlur(_dilated,_blur,::cv::Size(_gauss_blur_size,_gauss_blur_size),_gauss_sigma_X);
-      
-      //Threshold
-      //double threshold(InputArray src, OutputArray dst, double thresh, double maxval, int 
-      auto what = threshold(_blur,_binary,_thresh,_maxval,::cv::THRESH_BINARY); // what is the return of this?
-      
-      //HoughLinesP
-      //void HoughLinesP(InputArray image, OutputArray lines,
-      //                 double rho, double theta, int threshold,
-      //                 double minLineLength=0, double maxLineGap=0 )
-      
-      auto pi = double{3.14159};
-      std::vector<::cv::Vec4i> lines;
-      ::cv::HoughLinesP(_binary, lines, _hough_rho, pi/180.0,
-			_hough_threshold, _hough_min_line_length, _hough_max_line_gap);
-      
-      _houghs.resize(lines.size());
-      for(unsigned i = 0; i < lines.size(); ++i )
-	_houghs[i] = { (float) lines[i][0], (float) lines[i][1],
-		       (float) lines[i][2], (float) lines[i][3] };      
-      
-      //Canny
-      ::cv::Canny(_binary,_canny,_canny_threshold1,_canny_threshold2,_canny_app_size);
-      
-      // ==> page 100 of ``Computer Vision with OpenCV"
-      // In OpenCV, each individual contour is stored as a vector of points,
-      // and all the contours are stored as a vector of contours (i.e. a vector of vectors of points).
+      auto& _possiblebreak = _possiblebreak_v[p_plane];
 
-      //Contours
+      
+      auto kernel1 = ::cv::getStructuringElement(cv::MORPH_ELLIPSE,::cv::Size(_dilation_size,_dilation_size));
+      ::cv::dilate(image,_dilated,kernel1,::cv::Point(-1,-1),2);
+      ::cv::blur(_dilated,_blur,::cv::Size(5,5));
+      auto what2 = ::cv::threshold(_blur,_binary,0,255,CV_THRESH_BINARY);
+
       std::vector<std::vector<cv::Point> > cv_contour_v;
       std::vector<::cv::Vec4i> cv_hierarchy_v;
-      ::cv::findContours(_canny,cv_contour_v,cv_hierarchy_v,
-    			 CV_RETR_EXTERNAL,
-    			 CV_CHAIN_APPROX_SIMPLE);
+      cv_contour_v.clear();
+      cv_hierarchy_v.clear();
+      ::cv::findContours(_binary,cv_contour_v,cv_hierarchy_v,
+			 CV_RETR_EXTERNAL,
+			 CV_CHAIN_APPROX_SIMPLE);
+
+      std::vector<std::vector<::cv::Point> > ctors;
+      ctors.resize(cv_contour_v.size());
+
+      for( size_t k = 0; k < cv_contour_v.size(); k++ )
+	::cv::approxPolyDP(cv_contour_v[k], ctors[k], 0.1, true);
       
       
-      /////////////////////////////////////////////////////
-      //This may be logical break here for new framework?
-      //
-      //We can start building the skeleton clusters....
-      //
+      //lets make protoclusters here
+      _p_clusters.reserve(cv_contour_v.size());
       
-      
-      // convexHull first, fill the protoclusters with convex hull'd contours
-      std::vector<std::vector<::cv::Point> > hull( cv_contour_v.size() );
-
-      std::vector<std::vector<std::pair<float,float> > > hulls;
-      hulls.resize(cv_contour_v.size());
-
-
-      _p_clusters.reserve( cv_contour_v.size() );
-
-      for( unsigned i = 0; i < cv_contour_v.size(); i++ ) {
-
-	convexHull( ::cv::Mat(cv_contour_v[i]), hull[i], false );
-
-	hulls[i].resize(hull[i].size());
-
-	for(unsigned k = 0; k < hull[i].size(); ++k) {
-	  float x = (float) hull[i][k].x;
-	  float y = (float) hull[i][k].y;
-
-	  hulls[i][k] = std::make_pair(x,y);
-	}
+      for(auto& contour : ctors) {
 	
-	_p_clusters.emplace_back(hulls[i]);
-      }
-
-      //
-      //
-      //
-      /////////////////////////////////////////////////////
-      
-      
-      
-      
-
-      
-      
-      
-      
-      //convert protoclusters to convexhull
-      convert_convexhull(_p_clusters);
-      
-      std::cout << "\t==> Resolving Overlaps...\n";
-      auto qq = resolve_overlaps(_p_clusters);
-      std::cout << "\t==> Resolved overlaps in " << qq << " loops\n";
-      
-      
-      
-      // for each hline
-      std::cout << "\t size of houghs is : " << _houghs.size() << "\n";
-      for( auto& hline :  _houghs ) {
-
-	for(int i = 0; i < _p_clusters.size(); ++i) {
-
-	  auto first  = std::make_pair(hline[0],hline[1]);
-	  auto second = std::make_pair(hline[2],hline[3]);
-
-	  if ( ! ( _p_clusters[i].polygon() -> PointInside(first) ) )
-	    continue;
-	  
-	  if ( ! ( _p_clusters[i].polygon() -> PointInside(second) ) )
-	    continue;
-
-	  _p_clusters[i].AddLine(hline.data());
-
-	}
-      }
-
-      //Each protocluster has list of hlines
-      
-      for(auto & pc : _p_clusters) pc.ComputeDirection();
-      
-
-      std::map<size_t,std::vector<size_t> > compatable;
-      // Are two pclusters compatable
-      for(unsigned i = 0; i < _p_clusters.size(); ++i ) {
-
-	auto& p1 = _p_clusters[i];
-
-	if (p1.n_lines() == 0) continue;
+	std::vector<std::pair<float,float> > cont; cont.reserve(contour.size());
 	
-	for(unsigned j = 0; j < _p_clusters.size(); ++j ) {
-
-	  if ( j == i ) continue;
-
-	  auto& p2 = _p_clusters[j];
-
-	  if (p2.n_lines() == 0) continue;
+	for(auto& p : contour)
 	  
-	  auto angle_diff = std::abs( p1._avg_angle - p2._avg_angle );
-
-	  if ( angle_diff > 3.14159 )
-	    angle_diff -= 3.14159;
-
-	  std::cout << "\t (???) Compatable indicies (i,j) = (" << i << "," << j << ") found\n"
-		    << "\t with min distance = " << p1.polygon()->Distance( * p2.polygon() ) << "\n"
-		    << "\t min angle = " << angle_diff << " and p1 hline size = " << p1.n_lines() << "\n"
-		    << "\t and p2 hline size = " << p2.n_lines() << "\n";
-
-	  //are they close enough?
-	  if ( ! ( p1.polygon()->Distance( * p2.polygon() ) <= _merge_min_distance ) )
-	    continue;
-
-	  if ( ! ( angle_diff <= _merge_min_angle ) )
-	    continue;
-
-	  compatable[i].push_back(j);
-	}
+	  cont.emplace_back(p.x,p.y);
+	
+	_p_clusters.emplace_back(cont);
+	
       }
-
-
-      //combine them
-      combine_clusters(compatable,_p_clusters);
-      convert_convexhull(_p_clusters);
-
-      std::cout << "\t==> Resolving Overlaps...again??\n";
-      auto rr = resolve_overlaps(_p_clusters);
-      std::cout << "\t==> Resolved overlaps in " << rr << " loops\n";
+      
 
 
       
-      //that was terrible.
-      std::cout << "\t==> _p_Clusters size...: " << _p_clusters.size() << "\n";
+      //convert_convexhull(_p_clusters);
+      //auto rr = resolve_overlaps(_p_clusters);
 
       //write the final hulls to be written to output
       for(unsigned k = 0; k < _p_clusters.size(); ++k) {
-	
 	_hulls.resize( _p_clusters.size()) ;
-	
 	for(unsigned p = 0; p < _p_clusters[k].polygon()->Size(); ++p)  {
-
 	  _hulls[k].emplace_back(_p_clusters[k].polygon()->Point(p));
-
 	}
       }
 	
-
-      
       
 
-      //now do the actual clustering, just do conversion locally for now, later we
-      //maybe put into utility function
-        
+      //now do the actual clustering with event cluster
+             
       std::vector<int> x_min_v;
       std::vector<int> x_max_v;
       std::vector<int> y_min_v;
@@ -376,9 +243,11 @@ namespace larlite {
       int q = 0;
       
       for(auto& c : _p_clusters) {
+
+	hit_idx.clear();
 	
 	for(size_t i = 0; i < hits->size(); ++i) {
-	  
+
 	  if( used_hit[i] ) continue;
 	  
 	  auto& hit = hits->at(i);
@@ -395,33 +264,54 @@ namespace larlite {
 	  
 	  
 	}
+
+
+	// if ( hit_idx.size() == 0 ) {
+	//   std::cout << "\n\n\t==> This cluster had no hits in it <==\n\n";
+	//   throw std::exception();
+	//   continue;
+	// }
 	
+		
 	q++;
-	// std::cout << "We found ..." << hit_idx.size() << " inside this cluster...\n";
-	
+	// std::cout << "\t--> about to emplace_back\n";
 	if( hit_idx.size() > 0 ) {
 	  cluster cc;
 	  cc.set_id(clusters->size());
 	  cc.set_original_producer(clusters->name());
 	  cc.set_planeID(pID);
 	  cc.set_view(geo::View_t(p_plane));
+	  // cc.set_defects(d_d);
+
+	  std::cout << "\t==> perimeter : " << c.polygon()->Perimeter() << "\n";
+	  std::cout << "\t==> area      : " << c.polygon()->Area()      << "\n";
+
+	  cc.set_contour_area(c.polygon()->Perimeter());
+	  cc.set_contour_perimeter(c.polygon()->Area());
 	  
+	  // cc.set_convexhull_area(convexhull_area);
+	  // cc.set_convexhull_perimeter(convexhull_perimeter);
+
 	  clusters->emplace_back(cc);
 	  
 	  AssUnit_t one_ass; one_ass.reserve( p_hits.size() );
 	  my_ass->emplace_back(one_ass);
 	  
 	} else { continue; }
+
 	
 	auto& this_ass = my_ass->back();
 
 	for(const auto& h : hit_idx)
 	  { this_ass.push_back(h); }
-		      
+	// std::cout << "\t--> done emplace_back\n";
 	hit_idx.clear();
-	
+	// std::cout << "\t~~> hit_idx cleared...";
+
       }
 
+      // std::cout << "\t##> this is only temporary\n";
+      
       //this is only temporary!!!!
       for(size_t i = 0; i < hits->size(); ++i) {
 	  
@@ -448,7 +338,7 @@ namespace larlite {
 
 
 
-  int AlgoClusterHoughSimilar::resolve_overlaps(std::vector<ProtoCluster>& _p_clusters) {
+  int AlgoClusterBasics::resolve_overlaps(std::vector<ProtoCluster>& _p_clusters) {
 
     std::vector<ProtoCluster> combined;
     combined.reserve(_p_clusters.size());
@@ -552,33 +442,31 @@ namespace larlite {
 
   }
     
-  void AlgoClusterHoughSimilar::combine_clusters(std::map<size_t,std::vector<size_t> >& to_combine,
-						 std::vector<ProtoCluster>& _p_clusters) {
+  void AlgoClusterBasics::combine_clusters(std::map<size_t,std::vector<size_t> >& to_combine,
+					 std::vector<ProtoCluster>& _p_clusters) {
     
 
     std::vector<ProtoCluster> combined;
     combined.reserve(_p_clusters.size());
 
+    std::vector<std::pair<float,float> > out; out.reserve(_p_clusters.size());
+
     std::map<size_t,bool> used;
     for(size_t k = 0; k < _p_clusters.size(); ++k) used[k] = false;
-
-    std::vector<std::pair<float,float> > out; out.reserve(_p_clusters.size());
     
     for ( const auto& c_index : to_combine ) {
 
-      //has this one been connected already
-      // if( used[c_index.first] ) continue;
-
-      std::cout << "proto cluster index: " << c_index.first
-		<< " connected to " << c_index.second.size()
-		<< " other points! {";
-      for(const auto& connected : c_index.second) { std::cout << connected << ","; } std::cout << "}\n";
+      if ( c_index.second.size() == 0 ) continue;
+      
+      // std::cout << "proto cluster index: " << c_index.first << " connected to " << c_index.second.size() << " other points! {";
+      //for(const auto& connected : c_index.second) { std::cout << connected << ","; } std::cout << "}\n";
       out.clear();
 
       //get the cluster
       auto& clus1 = _p_clusters.at(c_index.first);
-      used[ c_index.first ] = true;
 
+      used[ c_index.first ] = true;
+      
       //put points inside out
       for(unsigned p = 0; p < clus1.polygon()->Size(); ++p)
 	out.emplace_back( clus1.polygon()->Point(p) );
@@ -586,13 +474,10 @@ namespace larlite {
       // loop over the ones that are connected
       for(const auto& connected : c_index.second) {
 
-	//has this one been connected already
-	// if( used[connected] ) continue;
-		
 	//get the cluster
 	auto& clus2 = _p_clusters.at(connected);
 	used[connected] = true;
-
+	
 	//put points inside out
 	for(unsigned p = 0; p < clus2.polygon()->Size(); ++p)
 	  out.emplace_back( clus2.polygon()->Point(p) );
@@ -619,14 +504,15 @@ namespace larlite {
       combined.emplace_back(out2);
     }
 
+    // for(auto& com :combined) { com.polygon()->UntanglePolygon();}
 
     std::swap(_p_clusters,combined);    
   }
 
 
-
-  std::vector<std::pair<float,float> > AlgoClusterHoughSimilar::convert_fewconvex(std::vector<size_t>& idx,
-										  std::vector<ProtoCluster>& _pcluster) {
+  
+  std::vector<std::pair<float,float> > AlgoClusterBasics::convert_fewconvex(std::vector<size_t>& idx,
+									  std::vector<ProtoCluster>& _pcluster) {
 
 
     std::vector<cv::Point> combine; combine.reserve ( 100 );
@@ -663,7 +549,7 @@ namespace larlite {
 
 
   
-  std::vector<std::pair<float,float> > AlgoClusterHoughSimilar::convert_singleconvex(ProtoCluster& _pcluster) {
+  std::vector<std::pair<float,float> > AlgoClusterBasics::convert_singleconvex(ProtoCluster& _pcluster) {
 
     std::vector<cv::Point> combine; combine.reserve ( 100 );
     std::vector<cv::Point> hul;     hul.reserve     ( 100 );
@@ -691,7 +577,7 @@ namespace larlite {
     
   }
   
-  void AlgoClusterHoughSimilar::convert_convexhull(std::vector<ProtoCluster>& _p_clusters) {
+  void AlgoClusterBasics::convert_convexhull(std::vector<ProtoCluster>& _p_clusters) {
 
     std::vector<ProtoCluster> hulled; hulled.reserve(_p_clusters.size());
 

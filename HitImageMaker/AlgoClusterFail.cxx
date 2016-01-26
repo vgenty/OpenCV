@@ -91,7 +91,7 @@ namespace larlite {
     _binary_v [plane].release();
     _canny_v  [plane].release();
 
-    std::cout << "in " << __FUNCTION__ << " size : " << size << " type: " << type << "\n";
+    // std::cout << "in " << __FUNCTION__ << " size : " << size << " type: " << type << "\n";
     _dilated_v[plane].create(size,type);
     _blur_v   [plane].create(size,type);
     _binary_v [plane].create(size,type);
@@ -128,10 +128,10 @@ namespace larlite {
     
     
     for(const auto& p_hit: plane_hits) { //loop over each plane
-      std::cout << "\n\n\n\n\t++++++++++a\n\n\n\n" ;
+      // std::cout << "\n\n\n\n\t++++++++++a\n\n\n\n" ;
 
       auto& p_plane = p_hit.first;
-      std::cout << p_plane << "\n";
+      // std::cout << p_plane << "\n";
 
       auto& p_hits  = p_hit.second;
 
@@ -224,10 +224,10 @@ namespace larlite {
 	  if (  p1.polygon()->Distance( * p2.polygon() ) > _merge_min_distance  )
 	    continue;
 
-	  std::cout << "have distance... " << p1.polygon()->Distance( * p2.polygon() ) << "\n";
+	  // std::cout << "have distance... " << p1.polygon()->Distance( * p2.polygon() ) << "\n";
 	  auto s = p1.polygon()->TwoClosest( *p2.polygon() );
 
-	  std::cout << "s* = " << s.first << "," << s.second << "\n";
+	  // std::cout << "s* = " << s.first << "," << s.second << "\n";
 	  p1.polygon()->RemoveVertex(s.first);
 	  p2.polygon()->RemoveVertex(s.second);
 	  
@@ -245,7 +245,7 @@ namespace larlite {
       //We need to separate clusters based on output of hough, but how?
       
       //that was terrible.
-      std::cout << "\t==> _p_Clusters size...: " << _p_clusters.size() << "\n";
+      // std::cout << "\t==> _p_Clusters size...: " << _p_clusters.size() << "\n";
 
       //write the final hulls to be written to output
       for(unsigned k = 0; k < _p_clusters.size(); ++k) {
@@ -397,41 +397,73 @@ namespace larlite {
 
 	for( size_t k = 0; k < cv_contour_v.size(); k++ )
 	  ::cv::approxPolyDP(cv_contour_v[k], ctors[k], 0.1, true);
+
+
 	  
-	std::cout << " I found ..." << ctors.size() << " number of contours in ho\n";
+	// std::cout << " I found ..." << ctors.size() << " number of contours in ho\n";
 
 	auto largest = int{0};
 	size_t index = 0;
 	for ( unsigned i = 0; i < ctors.size(); ++i) {
-	  std::cout << "\t==>ctors[i].size() = " << ctors[i].size() << "\n";
+	  // std::cout << "\t==>ctors[i].size() = " << ctors[i].size() << "\n";
 	  if ( ctors[i].size() > largest ) {
 	    largest = ctors[i].size();
 	    index = i;
 	  }
 	}
-	
-	std::cout << "one with the largest size is: " << index << "\n";
+
+
+
+		  
+	// std::cout << "one with the largest size is: " << index << "\n";
 
 	std::vector<cv::Vec4i> defects;
 	std::vector<float> d_d;
 
+	float contour_perimeter = 0;
+	float contour_area = 0;
+	
+	float convexhull_area = 0;
+	float convexhull_perimeter = 0;
+	
 	if ( ctors.size() ) {
 
 	  std::vector<int> hullpts;
+	  std::vector<::cv::Point> actual_hull; 
+
+
 	  ::cv::convexHull(ctors[index],hullpts);
-	  std::cout << "hullpts.size()  " << hullpts.size() << "\n";
+	  ::cv::convexHull(::cv::Mat(ctors[index]),actual_hull);
+	  
+	  // std::cout << "actual_hull size() : " << actual_hull.size() << "\n";
+	  
+	  convexhull_perimeter  = ::cv::arcLength   (actual_hull,true);
+	  convexhull_area       = ::cv::contourArea (actual_hull,false);
+	  
+	  // std::cout << "hull_perimeter: "<< convexhull_perimeter << std::endl;
+	  // std::cout << "hull_area: "     << convexhull_area      << std::endl;
+	  
 	  hullpts.push_back(hullpts.at(0));
-	
-	  std::cout << "\n(";
-	  for ( auto& pt : hullpts ) std::cout << pt << ",";
-	  std::cout << ")\n";
+
+	  contour_perimeter    = ::cv::arcLength   (ctors[index],true);
+	  contour_area         = ::cv::contourArea (ctors[index],false);
+
+	  // std::cout << "contour_perimeter: "<< contour_perimeter << std::endl;
+	  // std::cout << "contour_area: "     << contour_area      << std::endl;
+	  
+	 
+
+	  // std::cout << "\n(";
+	  // for ( auto& pt : hullpts ) std::cout << pt << ",";
+	  // std::cout << ")\n";
 	
 	  //we use cluster set_width to 0 for shower like 1 for track like ?
 	  //
 	  
 	  ::cv::convexityDefects(ctors[index],hullpts,defects);
+	  
 	  for(auto & defect : defects) {
-	    std::cout << "defect distance = " << defect[3]/256.0 << "\n";
+	    // std::cout << "defect distance = " << defect[3]/256.0 << "\n";
 	    d_d.push_back(defect[3]/256.0);
 	  }
 
@@ -441,7 +473,7 @@ namespace larlite {
 	_possiblebreak.emplace_back(ho);
 		
 	q++;
-	std::cout << "\t--> about to emplace_back\n";
+	// std::cout << "\t--> about to emplace_back\n";
 	if( hit_idx.size() > 0 ) {
 	  cluster cc;
 	  cc.set_id(clusters->size());
@@ -449,7 +481,12 @@ namespace larlite {
 	  cc.set_planeID(pID);
 	  cc.set_view(geo::View_t(p_plane));
 	  cc.set_defects(d_d);
-	  
+
+	  cc.set_contour_area(contour_area);
+	  cc.set_contour_perimeter(contour_perimeter);
+	  cc.set_convexhull_area(convexhull_area);
+	  cc.set_convexhull_perimeter(convexhull_perimeter);
+
 	  clusters->emplace_back(cc);
 	  
 	  AssUnit_t one_ass; one_ass.reserve( p_hits.size() );
@@ -462,13 +499,13 @@ namespace larlite {
 
 	for(const auto& h : hit_idx)
 	  { this_ass.push_back(h); }
-	std::cout << "\t--> done emplace_back\n";
+	// std::cout << "\t--> done emplace_back\n";
 	hit_idx.clear();
-	std::cout << "\t~~> hit_idx cleared...";
+	// std::cout << "\t~~> hit_idx cleared...";
 
       }
 
-      std::cout << "\t##> this is only temporary\n";
+      // std::cout << "\t##> this is only temporary\n";
       
       //this is only temporary!!!!
       for(size_t i = 0; i < hits->size(); ++i) {
@@ -616,8 +653,8 @@ namespace larlite {
 
       if ( c_index.second.size() == 0 ) continue;
       
-      std::cout << "proto cluster index: " << c_index.first << " connected to " << c_index.second.size() << " other points! {";
-      for(const auto& connected : c_index.second) { std::cout << connected << ","; } std::cout << "}\n";
+      // std::cout << "proto cluster index: " << c_index.first << " connected to " << c_index.second.size() << " other points! {";
+      //for(const auto& connected : c_index.second) { std::cout << connected << ","; } std::cout << "}\n";
       out.clear();
 
       //get the cluster

@@ -18,9 +18,9 @@
 #pragma link C++ class larlite::AlgoClusterHull+;
 #pragma link C++ class larlite::AlgoClusterHoughConnect+;
 #pragma link C++ class larlite::AlgoClusterHoughSimilar+;
-#pragma link C++ class larlite::AlgoClusterHullTwo+;
 #pragma link C++ class larlite::AlgoClusterConvex+;
 #pragma link C++ class larlite::AlgoClusterFail+;
+#pragma link C++ class larlite::AlgoClusterBasics+;
 
 #pragma link C++ class ProtoCluster+;
 //ADD_NEW_CLASS ... do not change this line

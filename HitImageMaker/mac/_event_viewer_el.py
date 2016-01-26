@@ -20,10 +20,12 @@ config = cfg_mgr.Config()
 pset = config.get_pset("ClusterHough");
 
 my_proc = fmwk.ana_processor()
-my_proc.add_input_file(sys.argv[1])
+
+for x in xrange(len(sys.argv)-1):    
+    my_proc.add_input_file(sys.argv[x+1])
 
 my_proc.set_io_mode(fmwk.storage_manager.kBOTH)
-my_proc.set_output_file("deleteme.root")
+my_proc.set_output_file("deleteme_el.root")
 my_proc.set_data_to_write(fmwk.data.kHit,'gaushit')
 my_proc.set_data_to_write(fmwk.data.kCluster,'hullcluster')
 my_proc.set_data_to_write(fmwk.data.kAssociation,'hullcluster')

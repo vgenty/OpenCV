@@ -34,12 +34,12 @@ namespace larlite {
       if( _q_max_v[plane] < q    ) _q_max_v[plane] = q;
     }
 
-    std::cout << "x min v size : " << _x_min_v.size() << "\n";
+    // std::cout << "x min v size : " << _x_min_v.size() << "\n";
     
     for(size_t plane=0; plane<_x_min_v.size(); ++plane) {
-      std::cout << "plane " << plane << "\n";
-      std::cout << "max,minX" << _x_max_v[plane] - _x_min_v[plane] + 1 << "\n";
-      std::cout << "max,minY" << _y_max_v[plane] - _y_min_v[plane] + 1 << "\n";
+      // std::cout << "plane " << plane << "\n";
+      // std::cout << "max,minX" << _x_max_v[plane] - _x_min_v[plane] + 1 << "\n";
+      // std::cout << "max,minY" << _y_max_v[plane] - _y_min_v[plane] + 1 << "\n";
 
       if ( _x_max_v[plane] - _x_min_v[plane] + 1 > 0 && _y_max_v[plane] - _y_min_v[plane] + 1 > 0) {
 	::cv::Mat mat(_x_max_v[plane] - _x_min_v[plane] + 1,
@@ -96,7 +96,7 @@ namespace larlite {
   {
 
     if(plane >= _mat_v.size()) {
-      std::cout << "\t==X Plane doesn't exist\n";
+      // std::cout << "\t==X Plane doesn't exist\n";
       throw std::exception();
     }
     

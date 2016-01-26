@@ -26,10 +26,9 @@ while ( storage.next_event() ):
 
 
     cluster_to_hit_ass = ass_data.association(clusters.id(),hits.id());
-    
 
 
-    fig, ax = plt.subplots(figsize=(10,6))
+    #fig, ax = plt.subplots(figsize=(10,6))
 
     for c in xrange(cluster_to_hit_ass.size()) :
 
@@ -51,11 +50,13 @@ while ( storage.next_event() ):
             d.append(defect)
 
         d = np.array(d)
+        
         print '----------------'
         print '----------------'
         print '----------------'
         
-        ax.plot(xx,yy,'.')
-        ax.autoscale()
+        #ax.plot(xx,yy,'.')
+        #ax.autoscale()
 
-        plt.show()
+        #plt.show()
+        
